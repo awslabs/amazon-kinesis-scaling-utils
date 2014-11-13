@@ -7,7 +7,7 @@ The utility might be used as part of a larger scaling environment, where you use
 
 ##Usage##
 ```
-java -cp KinesisScalingUtils.jar-complete.jar -Dstream-name=MyStream -Dscaling-action=scaleUp -Dcount=10 -Dkinesis–endpoint=eu-west-1
+java -cp KinesisScalingUtils.jar-complete.jar -Dstream-name=MyStream -Dscaling-action=scaleUp -Dcount=10 -Dregion=eu-west-1
 
 Options: 
 stream-name - The name of the Stream to be scaled
