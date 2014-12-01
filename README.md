@@ -24,7 +24,9 @@ You can also integrate the StreamScaler class with existing control systems.
 
 ##Kinesis Autoscaling##
 
-The Kinesis Autoscaling WAR can be deployed as an Elastic Beanstalk application, or to any Java application server, and once configured will monitor the CloudWatch statistics for your Stream and scale up and down as you configure it.
+The Kinesis Autoscaling WAR can be deployed as an Elastic Beanstalk application, or to any Java application server, and once configured will monitor the CloudWatch statistics for your Stream and scale up and down as you configure it. Below you can see a graph of how Autocaling will keep adequate Shard capacity to deal with PUT or GET demand:
+
+![AutoscalingGraph](https://s3-eu-west-1.amazonaws.com/meyersi-ire-aws/KinesisScalingUtility/img/KinesisAutoscalingGraph.png)
 
 To get started, create a new Elastic Beanstalk application which is a Web Server with a Tomcat predefined configuration. Deploy the WAR by uploading from your local GitHub, or by using S3 URL "s3://meyersi-ire-aws/AWSKinesisScalingUtils/dist/KinesisAutoscaling.war".
 
