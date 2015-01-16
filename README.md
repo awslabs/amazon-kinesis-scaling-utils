@@ -41,7 +41,7 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
 ```
 {"streamName":"String - name of the Stream to be Monitored",
  "region":"String - a Valid AWS Region Code, such as us-east-1 or eu-west-1",
- "scaleOnOperation":"String - the type of metric to be monitored, including PUT or GET",
+ "scaleOnOperation":"String - the type of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
  "scaleUp": {
      "scaleThresholdPct":Integer - at what threshold we should scale up,
      "scaleAfterMins":Integer - how many minutes above the scaleThreasdholdPct we should wait before scaling up,
