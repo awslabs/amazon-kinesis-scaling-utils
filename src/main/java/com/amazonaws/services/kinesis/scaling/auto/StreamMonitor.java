@@ -92,7 +92,7 @@ public class StreamMonitor implements Runnable {
                 this.config.getStreamName());
         int shardMaxBytes;
 
-        if (config.getScaleOnOperation().startsWith("PutRecord")) {
+        if (config.getScaleOnOperation().equals("PUT")) {
             shardMaxBytes = WRITE_BYTES_PER_SHARD;
         } else {
             shardMaxBytes = READ_BYTES_PER_SHARD;
