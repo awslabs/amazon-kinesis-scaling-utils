@@ -1,26 +1,32 @@
 /**
- * Amazon Kinesis Aggregators Copyright 2014, Amazon.com, Inc. or its
- * affiliates. All Rights Reserved. Licensed under the Amazon Software License
- * (the "License"). You may not use this file except in compliance with the
- * License. A copy of the License is located at http://aws.amazon.com/asl/ or in
- * the "license" file accompanying this file. This file is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions
- * and limitations under the License.
+ * Amazon Kinesis Aggregators
+ *
+ * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Amazon Software License (the "License").
+ * You may not use this file except in compliance with the License.
+ * A copy of the License is located at
+ *
+ *  http://aws.amazon.com/asl/
+ *
+ * or in the "license" file accompanying this file. This file is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
+import java.net.URISyntaxException;
 import java.net.URL;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -94,7 +100,7 @@ public class AutoscalingConfiguration implements Serializable {
         File configFile = null;
 
         if (url.startsWith("s3://")) {
-            // download the configuratino from S3
+            // download the configuration from S3
             AmazonS3 s3Client = new AmazonS3Client(new DefaultAWSCredentialsProviderChain());
 
             TransferManager tm = new TransferManager(s3Client);
@@ -118,11 +124,25 @@ public class AutoscalingConfiguration implements Serializable {
 
             LOG.info(String.format("Loaded Configuration from Amazon S3 %s/%s to %s", bucket,
                     prefix, configFile.getAbsolutePath()));
-        } else {
+        } else if (url.startsWith("http")) {
             configFile = File.createTempFile("kinesis-autoscaling-config", null);
             FileUtils.copyURLToFile(new URL(url), configFile, 1000, 1000);
             LOG.info(String.format("Loaded Configuration from %s to %s", url,
                     configFile.getAbsolutePath()));
+        } else {
+            try {
+                InputStream classpathConfig = AutoscalingConfiguration.class.getClassLoader().getResourceAsStream(
+                        url);
+                if (classpathConfig != null && classpathConfig.available() > 0) {
+                    configFile = new File(AutoscalingConfiguration.class.getResource(
+                            (url.startsWith("/") ? "" : "/") + url).toURI());
+                } else {
+                    throw new IOException("Unable to load local file from " + url);
+                }
+            } catch (URISyntaxException e) {
+                throw new IOException(e);
+            }
+            LOG.info(String.format("Loaded Configuration local %s", url));
         }
 
         // read the json config into an array of autoscaling

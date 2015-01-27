@@ -1,17 +1,25 @@
 /**
- * Amazon Kinesis Aggregators Copyright 2014, Amazon.com, Inc. or its
- * affiliates. All Rights Reserved. Licensed under the Amazon Software License
- * (the "License"). You may not use this file except in compliance with the
- * License. A copy of the License is located at http://aws.amazon.com/asl/ or in
- * the "license" file accompanying this file. This file is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions
- * and limitations under the License.
+ * Amazon Kinesis Aggregators
+ *
+ * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Amazon Software License (the "License").
+ * You may not use this file except in compliance with the License.
+ * A copy of the License is located at
+ *
+ *  http://aws.amazon.com/asl/
+ *
+ * or in the "license" file accompanying this file. This file is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.logging.Log;
@@ -65,6 +73,12 @@ public class StreamMonitor implements Runnable {
 
     private Exception exception;
 
+    /* incomplete constructor only for testing */
+    protected StreamMonitor(AutoscalingConfiguration config, StreamScaler scaler) throws Exception {
+        this.config = config;
+        this.scaler = scaler;
+    }
+
     public StreamMonitor(AutoscalingConfiguration config, ExecutorService executor)
             throws Exception {
         this.config = config;
@@ -85,7 +99,7 @@ public class StreamMonitor implements Runnable {
      * method which returns the current max capacity of a Stream based on
      * configuration of alarms on PUTS or GETS
      */
-    private int getStreamBytesMax() throws Exception {
+    protected int getStreamBytesMax() throws Exception {
         LOG.debug(String.format("Refreshing Stream %s Throughput Information",
                 this.config.getStreamName()));
         Integer openShards = StreamScalingUtils.getOpenShardCount(this.kinesisClient,
@@ -104,6 +118,160 @@ public class StreamMonitor implements Runnable {
         return maxBytes;
     }
 
+    /*
+     * generate a single cloudwatch request for GET operations, as this is
+     * instrumented as a single GetRecords metric, or create two for PUT as this
+     * is instrumented as both PutRecord and PutRecords
+     */
+    private List<GetMetricStatisticsRequest> getCloudwatchRequests(String operationType) {
+        List<GetMetricStatisticsRequest> reqs = new ArrayList<>();
+        // configure cloudwatch to determine the current stream metrics
+        // add the stream name dimension
+        List<String> fetchMetrics = new ArrayList<>();
+
+        if (this.config.getScaleOnOperation().toUpperCase().equals("PUT")) {
+            fetchMetrics.add("PutRecord.Bytes");
+            fetchMetrics.add("PutRecords.Bytes");
+        } else {
+            fetchMetrics.add("GetRecords.Bytes");
+        }
+
+        for (String s : fetchMetrics) {
+            GetMetricStatisticsRequest cwRequest = new GetMetricStatisticsRequest();
+
+            cwRequest.withNamespace("AWS/Kinesis").withDimensions(
+                    new Dimension().withName("StreamName").withValue(this.config.getStreamName())).withPeriod(
+                    CLOUDWATCH_PERIOD).withStatistics(Statistic.Sum);
+
+            cwRequest.withMetricName(s);
+
+            reqs.add(cwRequest);
+        }
+
+        return reqs;
+    }
+
+    /* method has bee lifted out of run() for unit testing purposes */
+    protected ScalingOperationReport processCloudwatchMetrics(Map<Datapoint, Double> metrics,
+            double streamBytesMax, int cwSampleDuration, String scaleUpByLabel,
+            String scaleDownByLabel, DateTime now) throws Exception {
+        ScalingOperationReport report = null;
+        double currentBytesMax = 0D;
+        double currentPct = 0D;
+        int lowSamples = 0;
+        int highSamples = 0;
+        double latestPct = 0d;
+        double latestBytes = 0d;
+        DateTime lastTime = null;
+        ScaleDirection scaleDirection = null;
+
+        // if we got nothing back, then there are no puts or gets
+        // happening, so this is a full 'low sample'
+        if (metrics.size() == 0) {
+            lowSamples = this.config.getScaleDown().getScaleAfterMins();
+        }
+
+        // process the data point aggregates retrieved from CloudWatch
+        // and log scale up/down votes by period
+        for (Datapoint d : metrics.keySet()) {
+            currentPct = metrics.get(d) / streamBytesMax;
+
+            // keep track of the last measures
+            if (lastTime == null || new DateTime(d.getTimestamp()).isAfter(lastTime)) {
+                latestPct = currentPct;
+                latestBytes = currentBytesMax;
+            }
+            lastTime = new DateTime(d.getTimestamp());
+
+            // if the pct for the datapoint exceeds or is below the
+            // thresholds, then add low/high samples
+            if (currentPct > new Double(this.config.getScaleUp().getScaleThresholdPct()) / 100) {
+                LOG.debug("Cached High Alarm Condition for " + currentBytesMax + " bytes ("
+                        + currentPct + "%)");
+                highSamples++;
+            } else if (currentPct < new Double(this.config.getScaleDown().getScaleThresholdPct()) / 100) {
+                LOG.debug("Cached Low Alarm Condition for " + currentBytesMax + " bytes ("
+                        + currentPct + "%)");
+                lowSamples++;
+            }
+        }
+
+        // add low samples for the periods which we didn't get any
+        // data points, if there are any
+        if (metrics.size() < cwSampleDuration) {
+            lowSamples += cwSampleDuration - metrics.size();
+        }
+
+        LOG.info(String.format("Stream Used Capacity %.2f%% (%,.0f Bytes)", latestPct * 100,
+                latestBytes));
+
+        // check how many samples we have in the last period, and
+        // flag the appropriate action
+        if (highSamples >= config.getScaleUp().getScaleAfterMins()) {
+            scaleDirection = ScaleDirection.UP;
+        } else if (lowSamples >= config.getScaleDown().getScaleAfterMins()) {
+            scaleDirection = ScaleDirection.DOWN;
+        }
+
+        LOG.debug("Currently tracking " + highSamples + " Scale Up Alarms, and " + lowSamples
+                + " Scale Down Alarms");
+
+        // if the metric stats indicate a scale up or down, then do the
+        // action
+        if (scaleDirection != null && scaleDirection.equals(ScaleDirection.UP)) {
+            // submit a scale up task
+            LOG.info(String.format(
+                    "Scale Up Stream %s by %s as %s has been above %s%% for %s Minutes",
+                    this.config.getStreamName(), scaleUpByLabel, this.config.getScaleOnOperation(),
+                    this.config.getScaleUp().getScaleThresholdPct(),
+                    this.config.getScaleUp().getScaleAfterMins()));
+
+            if (this.config.getScaleUp().getScaleCount() != null) {
+                report = this.scaler.scaleUp(this.config.getStreamName(),
+                        this.config.getScaleUp().getScaleCount());
+            } else {
+                report = this.scaler.scaleUp(this.config.getStreamName(), new Double(
+                        this.config.getScaleUp().getScalePct()) / 100);
+            }
+        } else if (scaleDirection != null && scaleDirection.equals(ScaleDirection.DOWN)) {
+            // check the cool down interval
+            if (lastScaleDown != null
+                    && now.minusMinutes(this.config.getScaleDown().getCoolOffMins()).isBefore(
+                            lastScaleDown)) {
+                LOG.info(String.format(
+                        "Deferring Scale Down until Cool Off Period of %s Minutes has elapsed",
+                        this.config.getScaleDown().getCoolOffMins()));
+            } else if ((this.config.getScaleOnOperation().equals("PUT") && streamBytesMax == WRITE_BYTES_PER_SHARD)
+                    || (this.config.getScaleOnOperation().equals("GET") && streamBytesMax == READ_BYTES_PER_SHARD)) {
+                // do nothing - we're already at 1 shard
+                LOG.debug("Not Scaling Down - Already at Minimum of 1 Shard");
+            } else {
+                // submit a scale down
+                LOG.info(String.format(
+                        "Scale Down Stream %s by %s as %s has been below %s%% for %s Minutes",
+                        this.config.getStreamName(), scaleDownByLabel,
+                        config.getScaleOnOperation(),
+                        this.config.getScaleDown().getScaleThresholdPct(),
+                        this.config.getScaleDown().getScaleAfterMins()));
+                if (this.config.getScaleDown().getScaleCount() != null) {
+                    report = this.scaler.scaleDown(this.config.getStreamName(),
+                            this.config.getScaleDown().getScaleCount());
+                } else {
+                    report = this.scaler.scaleDown(this.config.getStreamName(), new Double(
+                            this.config.getScaleDown().getScalePct()) / 100);
+                }
+
+                lastScaleDown = new DateTime(System.currentTimeMillis());
+            }
+        } else {
+            // scale direction not set, so we're not going to scale
+            // up or down - everything fine
+            LOG.debug("No Scaling Directive received");
+        }
+
+        return report;
+    }
+
     @Override
     public void run() {
         LOG.info(String.format("Started Stream Monitor for %s", config.getStreamName()));
@@ -117,12 +285,6 @@ public class StreamMonitor implements Runnable {
             this.exception = e;
             return;
         }
-        double currentBytesMax = -1D;
-
-        // configure cloudwatch to determine the current stream metrics
-        // add the stream name dimension
-        List<String> fetchMetrics = new ArrayList<>();
-        List<GetMetricStatisticsRequest> cwRequests = new ArrayList<>();
 
         // configure log labels
         String scaleUpByLabel = "";
@@ -143,45 +305,29 @@ public class StreamMonitor implements Runnable {
                 config.getScaleDown().getScaleAfterMins());
 
         // add the metric name dimension
-        String metricName;
-        if (this.config.getScaleOnOperation().equals("PUT")) {
-            fetchMetrics.add("PutRecord.Bytes");
-            fetchMetrics.add("PutRecords.Bytes");
-        } else {
-            fetchMetrics.add("GetRecords.Bytes");
-        }
-
-        for (String s : fetchMetrics) {
-            GetMetricStatisticsRequest cwRequest = new GetMetricStatisticsRequest();
-
-            cwRequest.withNamespace("AWS/Kinesis").withDimensions(
-                    new Dimension().withName("StreamName").withValue(this.config.getStreamName())).withPeriod(
-                    CLOUDWATCH_PERIOD).withStatistics(Statistic.Sum);
-
-            cwRequest.withMetricName(s);
-
-            cwRequests.add(cwRequest);
-        }
+        List<GetMetricStatisticsRequest> cwRequests = getCloudwatchRequests(config.getScaleOnOperation());
 
         try {
             ScalingOperationReport report = null;
 
             do {
-                ScaleDirection scaleDirection = null;
                 DateTime now = new DateTime(System.currentTimeMillis());
                 DateTime metricEndTime = new DateTime(System.currentTimeMillis());
 
                 // fetch only the last N minutes metrics
                 DateTime metricStartTime = metricEndTime.minusMinutes(cwSampleDuration);
 
-                int lowSamples = 0;
-                int highSamples = 0;
-                double latestPct = 0d;
-                double latestBytes = 0d;
+                Map<Datapoint, Double> metrics = new HashMap<>();
 
                 // iterate through all the requested CloudWatch metrics (either
-                // a single GetRecords, or two: PutRecord and PutRecords
+                // a single GetRecords, or two: PutRecord and PutRecords and
+                // collapse them down into a single map of sum bytes indexed by
+                // datapoint
+                //
+                // TODO Figure out how to mock this bit
                 for (GetMetricStatisticsRequest req : cwRequests) {
+                    double sampleBytes = 0D;
+
                     req.withStartTime(metricStartTime.toDate()).withEndTime(metricEndTime.toDate());
 
                     // call cloudwatch to get the required metrics
@@ -190,124 +336,28 @@ public class StreamMonitor implements Runnable {
                             cwSampleDuration, req.getMetricName()));
                     GetMetricStatisticsResult cloudWatchMetrics = cloudWatchClient.getMetricStatistics(req);
 
-                    // if we got nothing back, then there are no puts or gets
-                    // happening, so this is a full 'low sample'
-                    if (cloudWatchMetrics.getDatapoints().size() == 0) {
-                        lowSamples = config.getScaleDown().getScaleAfterMins();
-                        currentBytesMax = 0;
-                    }
-
-                    // update the map tracking the low and high values observed
-                    // for
-                    // the measure
-                    DateTime lastTime = null;
-                    int retrievedCwSamples = 0;
-
+                    // aggregate the sample bytes by datapoint into a map, so
+                    // that PutRecords and PutRecord measures are added together
                     for (Datapoint d : cloudWatchMetrics.getDatapoints()) {
-                        retrievedCwSamples++;
-                        currentBytesMax = (d.getSum() / CLOUDWATCH_PERIOD);
-                        double currentPct = currentBytesMax / streamBytesMax;
-
-                        if (lastTime == null || new DateTime(d.getTimestamp()).isAfter(lastTime)) {
-                            latestPct = currentPct;
-                            latestBytes = currentBytesMax;
-                        }
-                        lastTime = new DateTime(d.getTimestamp());
-
-                        if (currentPct > new Double(this.config.getScaleUp().getScaleThresholdPct()) / 100) {
-                            LOG.debug("Cached High Alarm Condition for " + currentBytesMax
-                                    + " bytes (" + currentPct + "%)");
-                            highSamples++;
-                        } else if (currentPct < new Double(
-                                this.config.getScaleDown().getScaleThresholdPct()) / 100) {
-                            LOG.debug("Cached Low Alarm Condition for " + currentBytesMax
-                                    + " bytes (" + currentPct + "%)");
-                            lowSamples++;
-                        }
-                    }
-
-                    // add low samples for the periods which we didn't get any
-                    // data
-                    // points, if there are any
-                    if (retrievedCwSamples < cwSampleDuration) {
-                        lowSamples += cwSampleDuration - retrievedCwSamples;
-                    }
-                }
-
-                LOG.info(String.format("Stream Used Capacity %.2f%% (%,.0f Bytes)",
-                        latestPct * 100, latestBytes));
-
-                // check how many samples we have in the last period, and
-                // flag
-                // the appropriate action
-                if (highSamples >= config.getScaleUp().getScaleAfterMins()) {
-                    scaleDirection = ScaleDirection.UP;
-                } else if (lowSamples >= config.getScaleDown().getScaleAfterMins()) {
-                    scaleDirection = ScaleDirection.DOWN;
-                }
-
-                LOG.debug("Currently tracking " + highSamples + " Scale Up Alarms, and "
-                        + lowSamples + " Scale Down Alarms");
-
-                // if the metric stats indicate a scale up or down, then do the
-                // action
-                if (scaleDirection != null && scaleDirection.equals(ScaleDirection.UP)) {
-                    // submit a scale up task
-                    LOG.info(String.format(
-                            "Scale Up Stream %s by %s as %s has been above %s%% for %s Minutes",
-                            config.getStreamName(), scaleUpByLabel, config.getScaleOnOperation(),
-                            config.getScaleUp().getScaleThresholdPct(),
-                            config.getScaleUp().getScaleAfterMins()));
-
-                    if (this.config.getScaleUp().getScaleCount() != null) {
-                        report = this.scaler.scaleUp(this.config.getStreamName(),
-                                this.config.getScaleUp().getScaleCount());
-                    } else {
-                        report = this.scaler.scaleUp(this.config.getStreamName(), new Double(
-                                this.config.getScaleUp().getScalePct()) / 100);
-                    }
-                } else if (scaleDirection != null && scaleDirection.equals(ScaleDirection.DOWN)) {
-                    // check the cool down interval
-                    if (lastScaleDown != null
-                            && now.minusMinutes(config.getScaleDown().getCoolOffMins()).isBefore(
-                                    lastScaleDown)) {
-                        LOG.info(String.format(
-                                "Deferring Scale Down until Cool Off Period of %s Minutes has elapsed",
-                                config.getScaleDown().getCoolOffMins()));
-                    } else if ((this.config.getScaleOnOperation().equals("PUT") && streamBytesMax == WRITE_BYTES_PER_SHARD)
-                            || (this.config.getScaleOnOperation().equals("GET") && streamBytesMax == READ_BYTES_PER_SHARD)) {
-                        // do nothing - we're already at 1 shard
-                        LOG.debug("Not Scaling Down - Already at Minimum of 1 Shard");
-                    } else {
-                        // submit a scale down
-                        LOG.info(String.format(
-                                "Scale Down Stream %s by %s as %s has been below %s%% for %s Minutes",
-                                config.getStreamName(), scaleDownByLabel,
-                                config.getScaleOnOperation(),
-                                config.getScaleDown().getScaleThresholdPct(),
-                                config.getScaleDown().getScaleAfterMins()));
-                        if (this.config.getScaleDown().getScaleCount() != null) {
-                            report = this.scaler.scaleDown(this.config.getStreamName(),
-                                    this.config.getScaleDown().getScaleCount());
+                        if (metrics.containsKey(d)) {
+                            sampleBytes = metrics.get(d);
                         } else {
-                            report = this.scaler.scaleDown(this.config.getStreamName(), new Double(
-                                    this.config.getScaleDown().getScalePct()) / 100);
+                            sampleBytes = 0d;
                         }
-
-                        lastScaleDown = new DateTime(System.currentTimeMillis());
+                        sampleBytes += (d.getSum() / CLOUDWATCH_PERIOD);
+                        metrics.put(d, sampleBytes);
                     }
-                } else {
-                    // scale direction not set, so we're not going to scale
-                    // up or down - everything fine
-                    LOG.debug("No Scaling Directive received");
                 }
 
-                if (scaleDirection != null) {
+                // process the aggregated set of Cloudwatch Datapoints
+                report = processCloudwatchMetrics(metrics, streamBytesMax, cwSampleDuration,
+                        scaleUpByLabel, scaleDownByLabel, now);
+
+                if (report != null) {
                     // refresh the current max capacity after the
                     // modification
                     streamBytesMax = getStreamBytesMax();
                     lastShardCapacityRefreshTime = now;
-                    scaleDirection = null;
                 }
 
                 if (report != null) {
@@ -346,5 +396,9 @@ public class StreamMonitor implements Runnable {
 
     public Exception getException() {
         return this.exception;
+    }
+
+    protected void setLastScaleDown(DateTime setLastScaleDown) {
+        this.lastScaleDown = setLastScaleDown;
     }
 }

@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.amazonaws</groupId>
 	<artifactId>kinesis-scaling-utils</artifactId>
-	<version>.9.1.3</version>
+	<version>.9.1.4</version>
 	<licenses>
 		<license>
 			<name>Amazon Software License</name>
@@ -12,7 +12,7 @@
 		</license>
 	</licenses>
 	<build>
-		<defaultGoal>install assembly:assembly</defaultGoal>
+		<defaultGoal>verify install assembly:assembly war:war</defaultGoal>
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
@@ -27,6 +27,7 @@
 				<directory>src/test/resources</directory>
 				<includes>
 					<include>*.properties</include>
+					<include>*.json</include>
 				</includes>
 			</testResource>
 		</testResources>
