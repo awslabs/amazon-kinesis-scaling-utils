@@ -1,5 +1,5 @@
 /**
- * Amazon Kinesis Aggregators
+ * Amazon Kinesis Scaling Utility
  *
  * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -14,6 +14,7 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
 package com.amazonaws.services.kinesis.scaling;
 
 import java.math.BigInteger;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Stack;
 
+@SuppressWarnings("serial")
 public class AdjacentShardList extends ArrayList<AdjacentShards> {
     public AdjacentShardList(String streamName, List<ShardHashInfo> shards) throws Exception {
         ShardHashInfo previous = null;

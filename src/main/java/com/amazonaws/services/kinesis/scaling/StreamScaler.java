@@ -1,5 +1,5 @@
 /**
- * Amazon Kinesis Aggregators
+ * Amazon Kinesis Scaling Utility
  *
  * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -14,6 +14,7 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
 package com.amazonaws.services.kinesis.scaling;
 
 import java.text.NumberFormat;
@@ -36,13 +37,7 @@ import com.amazonaws.services.kinesis.AmazonKinesisClient;
  * Utility for scaling a Kinesis Stream. Places a priority on eventual balancing
  * of the Stream Keyspace by using a left leaning balanced tree topology. Also
  * places a priority on low impact to the Stream by making only one Shard
- * modification at any given time. <br>
- * <br>
- * The algorithm applied is as follows: <li>To scale up, split the largest Shard
- * on the basis of the size of the Keyspace it contains. The split is made
- * evenly across the Keyspace to create a balanced set of child shards</li> <li>
- * To scale down, merge the smallest two adjacent Shards</li><br>
- * This process is continued until the required number of Shards is achieved.
+ * modification at any given time.
  */
 public class StreamScaler {
     public enum SortOrder {
@@ -60,9 +55,9 @@ public class StreamScaler {
         count, pct;
     }
 
-    private final String AWSApplication = "SimpleKinesisScalingUtility";
+    private final String AWSApplication = "KinesisScalingUtility";
 
-    private final String version = ".9.1.4";
+    private final String version = ".9.1.5";
 
     private final NumberFormat pctFormat = NumberFormat.getPercentInstance();
 
@@ -285,19 +280,6 @@ public class StreamScaler {
 
     }
 
-    private ScalingOperationReport scaleStream(String streamName, AdjacentShardList shardsToMerge,
-            int targetShards, double targetPct, int operationsMade, int shardsCompleted,
-            long startTime) throws Exception {
-        Stack<ShardHashInfo> shardStack = shardsToMerge.asStack();
-
-        LOG.info(String.format("Merging %s Shards into %s (Keyspace Share %.0f%%)", streamName,
-                shardStack.size(), targetShards, targetPct * 100));
-
-        return scaleStream(streamName, 1, targetShards, targetPct, operationsMade, shardsCompleted,
-                startTime, shardStack);
-
-    }
-
     private ScalingOperationReport scaleStream(String streamName, int originalShardCount,
             int targetShards, double targetPct, int operationsMade, int shardsCompleted,
             long startTime, Stack<ShardHashInfo> shardStack) throws Exception {
@@ -313,39 +295,48 @@ public class StreamScaler {
             ShardHashInfo lowerShard = shardStack.pop();
 
             if (StreamScalingUtils.softCompare(lowerShard.getPctWidth(), targetPct) < 0) {
-                // get the next higher shard
-                ShardHashInfo higherShard = shardStack.pop();
-
-                if (StreamScalingUtils.softCompare(
-                        lowerShard.getPctWidth() + higherShard.getPctWidth(), targetPct) > 0) {
-                    // The two lowest shards are larger than the target size, so
-                    // split the upper at the target offset and merge the lower
-                    // of
-                    // the two new shards to the lowest shard
-                    AdjacentShards splitUpper = higherShard.doSplit(kinesisClient, targetPct
-                            - lowerShard.getPctWidth());
-                    operationsMade++;
-
-                    // place the upper of the two new shards onto the stack
-                    shardStack.push(splitUpper.getHigherShard());
-
-                    // merge lower of the new shards with the lowest shard
-                    LOG.debug(String.format("Merging Shard %s with %s", lowerShard.getShardId(),
-                            splitUpper.getLowerShard().getShardId()));
-                    ShardHashInfo lowerMerged = new AdjacentShards(streamName, lowerShard,
-                            splitUpper.getLowerShard()).doMerge(kinesisClient);
-                    LOG.debug(String.format("Created Shard %s (%s)", lowerMerged.getShardId(),
-                            pctFormat.format(lowerMerged.getPctWidth())));
-                    shardsCompleted++;
+                if (shardStack.isEmpty()) {
+                    // our last shard is smaller than the target size, but
+                    // there's nothing else to do
+                    return reportFor(streamName, operationsMade);
                 } else {
-                    // The lower and upper shards together are smaller than the
-                    // target size, so merge the two shards together
-                    ShardHashInfo lowerMerged = new AdjacentShards(streamName, lowerShard,
-                            higherShard).doMerge(kinesisClient);
-                    shardsCompleted++;
+                    // get the next higher shard
+                    ShardHashInfo higherShard = shardStack.pop();
 
-                    // put it back on the stack - it may still be too small
-                    shardStack.push(lowerMerged);
+                    if (StreamScalingUtils.softCompare(
+                            lowerShard.getPctWidth() + higherShard.getPctWidth(), targetPct) > 0) {
+                        // The two lowest shards are larger than the target
+                        // size, so
+                        // split the upper at the target offset and merge the
+                        // lower
+                        // of
+                        // the two new shards to the lowest shard
+                        AdjacentShards splitUpper = higherShard.doSplit(kinesisClient, targetPct
+                                - lowerShard.getPctWidth());
+                        operationsMade++;
+
+                        // place the upper of the two new shards onto the stack
+                        shardStack.push(splitUpper.getHigherShard());
+
+                        // merge lower of the new shards with the lowest shard
+                        LOG.debug(String.format("Merging Shard %s with %s",
+                                lowerShard.getShardId(), splitUpper.getLowerShard().getShardId()));
+                        ShardHashInfo lowerMerged = new AdjacentShards(streamName, lowerShard,
+                                splitUpper.getLowerShard()).doMerge(kinesisClient);
+                        LOG.debug(String.format("Created Shard %s (%s)", lowerMerged.getShardId(),
+                                pctFormat.format(lowerMerged.getPctWidth())));
+                        shardsCompleted++;
+                    } else {
+                        // The lower and upper shards together are smaller than
+                        // the
+                        // target size, so merge the two shards together
+                        ShardHashInfo lowerMerged = new AdjacentShards(streamName, lowerShard,
+                                higherShard).doMerge(kinesisClient);
+                        shardsCompleted++;
+
+                        // put it back on the stack - it may still be too small
+                        shardStack.push(lowerMerged);
+                    }
                 }
             } else if (StreamScalingUtils.softCompare(lowerShard.getPctWidth(), targetPct) == 0) {
                 // at the correct size - move on

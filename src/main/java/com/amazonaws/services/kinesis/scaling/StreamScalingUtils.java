@@ -1,5 +1,5 @@
 /**
- * Amazon Kinesis Aggregators
+ * Amazon Kinesis Scaling Utility
  *
  * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +44,10 @@ public class StreamScalingUtils {
 
     public static final int RETRY_TIMEOUT_MS = 100;
 
+    public static final int PCT_COMPARISON_SCALE = 10;
+
+    public static final RoundingMode ROUNDING_MODE = RoundingMode.HALF_DOWN;
+
     /**
      * Method to do a fuzzy comparison between two doubles, so that we can make
      * generalisations about allocation of keyspace to shards. For example, when
@@ -56,16 +59,13 @@ public class StreamScalingUtils {
      * @return
      */
     public static int softCompare(double a, double b) {
-        final int pctComparisonScale = 4;
-        final RoundingMode roundingMode = RoundingMode.HALF_DOWN;
-
         // allow variation by 1 order of magnitude greater than the comparison
         // scale
         final BigDecimal acceptedVariation = BigDecimal.valueOf(1d).divide(
-                BigDecimal.valueOf(10d).pow(pctComparisonScale - 1));
+                BigDecimal.valueOf(10d).pow(PCT_COMPARISON_SCALE - 1));
 
-        BigDecimal first = new BigDecimal(a).setScale(pctComparisonScale, roundingMode);
-        BigDecimal second = new BigDecimal(b).setScale(pctComparisonScale, roundingMode);
+        BigDecimal first = new BigDecimal(a).setScale(PCT_COMPARISON_SCALE, ROUNDING_MODE);
+        BigDecimal second = new BigDecimal(b).setScale(PCT_COMPARISON_SCALE, ROUNDING_MODE);
 
         BigDecimal variation = first.subtract(second).abs();
 

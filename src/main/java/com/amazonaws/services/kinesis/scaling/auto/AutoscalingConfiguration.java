@@ -1,5 +1,5 @@
 /**
- * Amazon Kinesis Aggregators
+ * Amazon Kinesis Scaling Utility
  *
  * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * Transfer Object for the Autoscaling Configuration, which can be built from a
  * variety of file locations
  */
+@SuppressWarnings("serial")
 public class AutoscalingConfiguration implements Serializable {
     private static final Log LOG = LogFactory.getLog(AutoscalingConfiguration.class);
 

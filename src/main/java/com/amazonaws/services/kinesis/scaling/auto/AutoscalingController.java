@@ -1,5 +1,5 @@
 /**
- * Amazon Kinesis Aggregators
+ * Amazon Kinesis Scaling Utility
  *
  * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *

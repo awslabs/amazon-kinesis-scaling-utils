@@ -1,5 +1,5 @@
 /**
- * Amazon Kinesis Aggregators
+ * Amazon Kinesis Scaling Utility
  *
  * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -61,6 +61,7 @@ public class StreamMonitor implements Runnable {
 
     private AutoscalingConfiguration config;
 
+    @SuppressWarnings("unused")
     private boolean keepRunning = true;
 
     private DateTime lastScaleDown = null;

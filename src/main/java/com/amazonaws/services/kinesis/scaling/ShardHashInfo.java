@@ -1,5 +1,5 @@
 /**
- * Amazon Kinesis Aggregators
+ * Amazon Kinesis Scaling Utility
  *
  * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -18,7 +18,6 @@ package com.amazonaws.services.kinesis.scaling;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.Map;
 
@@ -69,7 +68,8 @@ public class ShardHashInfo {
     }
 
     public static Double getPctOfKeyspace(BigInteger hashWidth) {
-        return new BigDecimal(hashWidth).divide(new BigDecimal(maxHash), 6, RoundingMode.HALF_UP).doubleValue();
+        return new BigDecimal(hashWidth).divide(new BigDecimal(maxHash),
+                StreamScalingUtils.PCT_COMPARISON_SCALE, StreamScalingUtils.ROUNDING_MODE).doubleValue();
     }
 
     protected String getShardId() {
