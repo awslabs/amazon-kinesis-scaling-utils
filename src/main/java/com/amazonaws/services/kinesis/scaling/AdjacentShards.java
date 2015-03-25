@@ -88,14 +88,14 @@ public class AdjacentShards {
                     StreamScalingUtils.MODIFY_RETRIES));
         }
 
-        Map<String,ShardHashInfo> openShards = StreamScalingUtils.getOpenShards(kinesisClient, streamName);
-        
+        Map<String, ShardHashInfo> openShards = StreamScalingUtils.getOpenShards(kinesisClient,
+                streamName);
+
         for (ShardHashInfo info : openShards.values()) {
-            if (info.getShard().getParentShardId().equals(lowerShard.getShardId())
-                    && info.getShard().getAdjacentParentShardId().equals(higherShard.getShardId())) {
+            if (lowerShard.getShardId().equals(info.getShard().getParentShardId())
+                    && higherShard.getShardId().equals(info.getShard().getAdjacentParentShardId())) {
                 return new ShardHashInfo(streamName, info.getShard());
             }
-            
         }
 
         return null;

@@ -50,11 +50,6 @@ public class StreamMonitor implements Runnable {
 
     public static final int TIMEOUT_SECONDS = 45;
 
-    /* configuration constants for the limits on kinesis shards */
-    public static final int WRITE_BYTES_PER_SHARD = 1_048_576;
-
-    public static final int READ_BYTES_PER_SHARD = 2_097_152;
-
     public static final int CLOUDWATCH_PERIOD = 60;
 
     public static final int REFRESH_SHARD_CAPACITY_MINS = 3;
@@ -105,16 +100,9 @@ public class StreamMonitor implements Runnable {
                 this.config.getStreamName()));
         Integer openShards = StreamScalingUtils.getOpenShardCount(this.kinesisClient,
                 this.config.getStreamName());
-        int shardMaxBytes;
 
-        if (config.getScaleOnOperation().equals("PUT")) {
-            shardMaxBytes = WRITE_BYTES_PER_SHARD;
-        } else {
-            shardMaxBytes = READ_BYTES_PER_SHARD;
-        }
-
-        int maxBytes = openShards.intValue() * shardMaxBytes;
-        LOG.info(String.format("Stream Capacity %s Open Shards, %,d Bytes/Second", openShards,
+        int maxBytes = openShards.intValue() * config.getScaleOnOperation().getMaxBytes();
+        LOG.debug(String.format("Stream Capacity %s Open Shards, %,d Bytes/Second", openShards,
                 maxBytes));
         return maxBytes;
     }
@@ -124,13 +112,14 @@ public class StreamMonitor implements Runnable {
      * instrumented as a single GetRecords metric, or create two for PUT as this
      * is instrumented as both PutRecord and PutRecords
      */
-    private List<GetMetricStatisticsRequest> getCloudwatchRequests(String operationType) {
+    private List<GetMetricStatisticsRequest> getCloudwatchRequests(
+            KinesisOperationType operationType) {
         List<GetMetricStatisticsRequest> reqs = new ArrayList<>();
         // configure cloudwatch to determine the current stream metrics
         // add the stream name dimension
         List<String> fetchMetrics = new ArrayList<>();
 
-        if (this.config.getScaleOnOperation().toUpperCase().equals("PUT")) {
+        if (this.config.getScaleOnOperation().equals(KinesisOperationType.PUT)) {
             fetchMetrics.add("PutRecord.Bytes");
             fetchMetrics.add("PutRecords.Bytes");
         } else {
@@ -175,7 +164,9 @@ public class StreamMonitor implements Runnable {
         // process the data point aggregates retrieved from CloudWatch
         // and log scale up/down votes by period
         for (Datapoint d : metrics.keySet()) {
-            currentPct = metrics.get(d) / streamBytesMax;
+            currentBytesMax = metrics.get(d);
+            currentPct = currentBytesMax / streamBytesMax;
+            
 
             // keep track of the last measures
             if (lastTime == null || new DateTime(d.getTimestamp()).isAfter(lastTime)) {
@@ -203,8 +194,8 @@ public class StreamMonitor implements Runnable {
             lowSamples += cwSampleDuration - metrics.size();
         }
 
-        LOG.info(String.format("Stream Used Capacity %.2f%% (%,.0f Bytes)", latestPct * 100,
-                latestBytes));
+        LOG.info(String.format("Stream Used Capacity %.2f%% (%,.0f Bytes of %,.0f)",
+                latestPct * 100, latestBytes, streamBytesMax));
 
         // check how many samples we have in the last period, and
         // flag the appropriate action
@@ -242,8 +233,7 @@ public class StreamMonitor implements Runnable {
                 LOG.info(String.format(
                         "Deferring Scale Down until Cool Off Period of %s Minutes has elapsed",
                         this.config.getScaleDown().getCoolOffMins()));
-            } else if ((this.config.getScaleOnOperation().equals("PUT") && streamBytesMax == WRITE_BYTES_PER_SHARD)
-                    || (this.config.getScaleOnOperation().equals("GET") && streamBytesMax == READ_BYTES_PER_SHARD)) {
+            } else if (streamBytesMax == this.config.getScaleOnOperation().getMaxBytes()) {
                 // do nothing - we're already at 1 shard
                 LOG.debug("Not Scaling Down - Already at Minimum of 1 Shard");
             } else {

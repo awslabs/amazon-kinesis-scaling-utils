@@ -44,7 +44,9 @@ public class AutoscalingConfiguration implements Serializable {
 
     private static ObjectMapper mapper = new ObjectMapper();
 
-    private String streamName, region, scaleOnOperation;
+    private String streamName, region;
+
+    private KinesisOperationType scaleOnOperation;
 
     private ScalingConfig scaleUp;
 
@@ -66,18 +68,11 @@ public class AutoscalingConfiguration implements Serializable {
         this.region = region;
     }
 
-    public String getScaleOnOperation() {
+    public KinesisOperationType getScaleOnOperation() {
         return scaleOnOperation;
     }
 
-    public void setScaleOnOperation(String scaleOnOperation) throws Exception {
-        switch (scaleOnOperation) {
-            case "PUT":
-            case "GET":
-                break;
-            default:
-                throw new Exception("Invalid Scaling Operation Type to Monitor");
-        }
+    public void setScaleOnOperation(KinesisOperationType scaleOnOperation) throws Exception {
         this.scaleOnOperation = scaleOnOperation;
     }
 
