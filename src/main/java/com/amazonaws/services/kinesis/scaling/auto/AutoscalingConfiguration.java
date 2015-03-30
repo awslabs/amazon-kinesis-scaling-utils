@@ -16,23 +16,22 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Serializable;
-import java.net.URISyntaxException;
-import java.net.URL;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.transfer.Download;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.net.URISyntaxException;
+import java.net.URL;
 
 /**
  * Transfer Object for the Autoscaling Configuration, which can be built from a
@@ -51,6 +50,8 @@ public class AutoscalingConfiguration implements Serializable {
     private ScalingConfig scaleUp;
 
     private ScalingConfig scaleDown;
+
+    private String snsArn = null;
 
     public String getStreamName() {
         return streamName;
@@ -90,6 +91,18 @@ public class AutoscalingConfiguration implements Serializable {
 
     public void setScaleDown(ScalingConfig scaleDown) {
         this.scaleDown = scaleDown;
+    }
+
+    /**
+     * ARN for SNS notification on scaling actions. May be null.
+     * @return Configured ARN
+     */
+    public String getSnsArn() {
+        return snsArn;
+    }
+
+    public void setSnsArn(String snsArn) {
+        this.snsArn = snsArn;
     }
 
     public static AutoscalingConfiguration[] loadFromURL(String url) throws IOException {
