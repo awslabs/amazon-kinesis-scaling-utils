@@ -59,3 +59,22 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
 ```
 
 once you've built the Autoscaling configuration required, save it to an HTTP file server or to Amazon S3. Then, access your Elastic Beanstalk application, and select 'Configuration' from the left hand Navigation Menu. Then select the 'Software Configuration' panel, and add a new configuration item called 'config-file-url' that points to the URL of the configuration file. Acceptable formats are 'http://path to file' or 's3://bucket/path to file'. Save the configuration, and then check the application logs for correct operation.
+
+## Building and Developing ##
+
+To build the project locally, run:
+
+```sh
+$ mvn war:war
+```
+
+The WAR at `target/kinesis-scaling-utils-<version>.war` can be deployed to S3 and used with Elastic Beanstalk or elsewhere.
+
+To run the project locally, run:
+
+```sh
+$ mvn jetty:run -Dconfig-file-url=s3://config-bucket-goes-here/config-file-name.json
+```
+
+This will start the application locally. You will need to have AWS credentials set as environment variables or in
+`~/.aws/config` for it to work correctly.
