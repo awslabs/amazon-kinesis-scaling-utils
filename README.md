@@ -3,7 +3,7 @@ amazon-kinesis-scaling-utils
 
 The Kinesis Scaling Utility is designed to give you the ability to scale Amazon Kinesis Streams in the same way that you scale EC2 Auto Scaling groups – up or down by a count or as a percentage of the total fleet. You can also simply scale to an exact number of Shards. There is no requirement for you to manage the allocation of the keyspace to Shards when using this API, as it is done automatically.
 
-You can also deploy the Web Archive to a Java Application Server, and allow Scaling Utils to automatically manage the number of Shards in the Stream based on the observed PUT or GET rate of the stream. 
+You can also deploy the Web Archive to a Java Application Server, and allow Scaling Utils to automatically manage the number of Shards in the Stream based on the observed PUT or GET rate of the stream.
 
 ##Manually Managing your Stream##
 
@@ -11,7 +11,7 @@ You can manually run the Scaling Utility from the command line by calling the Sc
 ```
 java -cp KinesisScalingUtils.jar-complete.jar -Dstream-name=MyStream -Dscaling-action=scaleUp -Dcount=10 -Dregion=eu-west-1 ScalingClient
 
-Options: 
+Options:
 stream-name - The name of the Stream to be scaled
 scaling-action - The action to be taken to scale. Must be one of "scaleUp”, "scaleDown" or “resize"
 count - Number of shards by which to absolutely scale up or down, or resize to or:
@@ -62,7 +62,7 @@ Once you've built the Autoscaling configuration required, save it to an HTTP fil
 
 ### Notifications ###
 
-To receive SNS notifications when scaling actions are executed, provide the ARN of an SNS topic in the scaling 
+To receive SNS notifications when scaling actions are executed, provide the ARN of an SNS topic in the scaling
 configuration object, as below:
 
 ```
@@ -86,3 +86,22 @@ configuration object, as below:
 
 The topic will receive notification upon the completion of each scaling action. For this feature to work, the application
 must have the `SNS:Publish` permission for the provided SNS topic.
+
+## Building and Developing ##
+
+To build the project locally, run:
+
+```sh
+$ mvn war:war
+```
+
+The WAR at `target/kinesis-scaling-utils-<version>.war` can be deployed to S3 and used with Elastic Beanstalk or elsewhere.
+
+To run the project locally, run:
+
+```sh
+$ mvn jetty:run -Dconfig-file-url=s3://config-bucket-goes-here/config-file-name.json
+```
+
+This will start the application locally. You will need to have AWS credentials set as environment variables or in
+`~/.aws/config` for it to work correctly.
