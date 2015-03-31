@@ -390,6 +390,7 @@ public class StreamMonitor implements Runnable {
             LOG.info(String.format("Stream Monitor for %s in %s Completed. Exiting.",
                     this.config.getStreamName(), this.config.getRegion()));
         } catch (Exception e) {
+            LOG.error(String.format("Stream monitor for %s encountered an exception", this.config.getStreamName()), e);
             this.exception = e;
         }
     }
