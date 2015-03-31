@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.amazonaws</groupId>
 	<artifactId>kinesis-scaling-utils</artifactId>
-	<version>0.9.1.5</version>
+	<version>0.9.1.6</version>
 	<licenses>
 		<license>
 			<name>Amazon Software License</name>
