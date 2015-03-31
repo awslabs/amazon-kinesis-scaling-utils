@@ -38,7 +38,7 @@ Once deployed, you must configure the Autoscaling engine by providing a JSON con
 
 a streamMonitor object is a definition of an Autoscaling Policy applied to a Kinesis Stream, and this array allows a single Autoscaling Web App to monitor multiple streams. A streamMonitor object is configured by:
 
-```
+```json
 {"streamName":"String - name of the Stream to be Monitored",
  "region":"String - a Valid AWS Region Code, such as us-east-1 or eu-west-1",
  "scaleOnOperation":"String - the type of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
@@ -110,14 +110,14 @@ Cloudwatch and S3, as well as SNS if using the SNS scaling notifications:
 To receive SNS notifications when scaling actions are executed, provide the ARN of an SNS topic in the scaling
 configuration object, as below:
 
-```
+```json
 {
  "streamName": "scaling-test-stream",
  "region": "us-east-1",
  "scaleOnOperation": "PUT",
  "scaleUp": {
      "scaleThresholdPct": 80,
-     "scaleAfterMins": 10
+     "scaleAfterMins": 10,
      "scalePct": 20
  },
  "scaleDown": {
