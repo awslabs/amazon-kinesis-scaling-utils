@@ -16,16 +16,6 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.joda.time.DateTime;
-
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
@@ -40,6 +30,17 @@ import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.scaling.ScalingOperationReport;
 import com.amazonaws.services.kinesis.scaling.StreamScaler;
 import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
+import com.amazonaws.services.kinesis.scaling.reporting.SnsReporter;
+import com.amazonaws.services.sns.AmazonSNSClient;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.joda.time.DateTime;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 public class StreamMonitor implements Runnable {
     private final Log LOG = LogFactory.getLog(StreamMonitor.class);
@@ -47,6 +48,8 @@ public class StreamMonitor implements Runnable {
     private AmazonKinesisClient kinesisClient;
 
     private AmazonCloudWatch cloudWatchClient;
+
+    private SnsReporter reporter;
 
     public static final int TIMEOUT_SECONDS = 45;
 
@@ -84,6 +87,11 @@ public class StreamMonitor implements Runnable {
 
         this.kinesisClient = new AmazonKinesisClient(new DefaultAWSCredentialsProviderChain());
         this.kinesisClient.setRegion(Region.getRegion(Regions.fromName(this.config.getRegion())));
+
+        if (config.getSnsArn() != null) {
+            this.reporter = new SnsReporter(new AmazonSNSClient(new DefaultAWSCredentialsProviderChain()),
+                    config.getSnsArn());
+        }
     }
 
     public void stop() {
@@ -353,6 +361,12 @@ public class StreamMonitor implements Runnable {
 
                 if (report != null) {
                     LOG.info(report.toString());
+
+                    // If we have a configured scaling reporter, call it
+                    if (reporter != null) {
+                        reporter.publishReport(config.getStreamName(), report);
+                    }
+
                     report = null;
                 }
 

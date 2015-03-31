@@ -58,4 +58,31 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
 }
 ```
 
-once you've built the Autoscaling configuration required, save it to an HTTP file server or to Amazon S3. Then, access your Elastic Beanstalk application, and select 'Configuration' from the left hand Navigation Menu. Then select the 'Software Configuration' panel, and add a new configuration item called 'config-file-url' that points to the URL of the configuration file. Acceptable formats are 'http://path to file' or 's3://bucket/path to file'. Save the configuration, and then check the application logs for correct operation.
+Once you've built the Autoscaling configuration required, save it to an HTTP file server or to Amazon S3. Then, access your Elastic Beanstalk application, and select 'Configuration' from the left hand Navigation Menu. Then select the 'Software Configuration' panel, and add a new configuration item called 'config-file-url' that points to the URL of the configuration file. Acceptable formats are 'http://path to file' or 's3://bucket/path to file'. Save the configuration, and then check the application logs for correct operation.
+
+### Notifications ###
+
+To receive SNS notifications when scaling actions are executed, provide the ARN of an SNS topic in the scaling 
+configuration object, as below:
+
+```
+{"streamName": "scaling-test-stream",
+ "region": "us-east-1",
+ "scaleOnOperation": "PUT",
+ "scaleUp": {
+     "scaleThresholdPct": 80,
+     "scaleAfterMins": 10
+     "scalePct": 20
+ },
+ "scaleDown": {
+     "scaleThresholdPct": 20,
+     "scaleAfterMins": 60,
+     "scaleCount": 1,
+     "coolOffMins": 120
+ },
+ "snsArn": "arn:aws:sns:us-east-1:01234567890:scaling-test-notification"
+}
+```
+
+The topic will receive notification upon the completion of each scaling action. For this feature to work, the application
+must have the `SNS:Publish` permission for the provided SNS topic.
