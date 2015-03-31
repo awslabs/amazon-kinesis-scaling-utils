@@ -1,26 +1,31 @@
 amazon-kinesis-scaling-utils
 ============================
 
-The Kinesis Scaling Utility is designed to give you the ability to scale Amazon Kinesis Streams in the same way that you scale EC2 Auto Scaling groups – up or down by a count or as a percentage of the total fleet. You can also simply scale to an exact number of Shards. There is no requirement for you to manage the allocation of the keyspace to Shards when using this API, as it is done automatically.
+The Kinesis Scaling Utility is designed to give you the ability to scale Amazon Kinesis streams in the same way that you scale EC2 Auto Scaling groups – up or down by a count or as a percentage of the total count. You can also simply scale to an exact number of Shards. There is no requirement for you to manage the allocation of the keyspace to Shards when using this API, as it is done automatically.
 
-You can also deploy the Web Archive to a Java Application Server, and allow Scaling Utils to automatically manage the number of Shards in the Stream based on the observed PUT or GET rate of the stream.
+You can also deploy the Web Archive (WAR) to a Java application server, and allow Scaling Utils to automatically manage the number of Shards in the Stream based on the observed PUT or GET rate of the stream.
 
 ##Manually Managing your Stream##
 
-You can manually run the Scaling Utility from the command line by calling the ScalingClient with the following syntax.
-```
+You can manually scale a stream from the command line by calling the ScalingClient with the following syntax:
+
+```sh
 java -cp KinesisScalingUtils.jar-complete.jar -Dstream-name=MyStream -Dscaling-action=scaleUp -Dcount=10 -Dregion=eu-west-1 ScalingClient
+```
+
+The command line client takes several options, specified with `-Doption-name=option-value`:
 
 Options:
-stream-name - The name of the Stream to be scaled
-scaling-action - The action to be taken to scale. Must be one of "scaleUp”, "scaleDown" or “resize"
-count - Number of shards by which to absolutely scale up or down, or resize to or:
-pct - Percentage of the existing number of shards by which to scale up or down
-region - The Region where the Stream exists, such as us-east-1 or eu-west-1 (default us-east-1)
-shard-id - The Shard which you want to target for Scaling. NOTE: This will create imbalanced partitioning of the Keyspace
-```
+* `stream-name` - The name of the stream to be scaled
+* `scaling-action` - The action to be taken to scale. Must be one of `scaleUp`, `scaleDown` or `resize`
+* `count` - Number of shards by which to absolutely scale up or down, or the target number of shards if the scaling action is `resize`.
+* `pct` - Percentage of the existing number of shards by which to scale up or down
+* `region` - The AWS region where the stream exists, such as `us-east-1` or `eu-west-1` (default `us-east-1`)
+* `shard-id` - The shard which you want to target for scaling. NOTE: This will create imbalanced partitioning of the keyspace and is not required.
 
-You can also integrate the StreamScaler class with existing control systems.
+The client must be invoked with one of `count` and `pct`.
+
+You can also integrate the `StreamScaler` class with existing control systems.
 
 ##Kinesis Autoscaling##
 
@@ -28,22 +33,23 @@ The Kinesis Autoscaling WAR can be deployed as an Elastic Beanstalk application,
 
 ![AutoscalingGraph](https://s3-eu-west-1.amazonaws.com/meyersi-ire-aws/KinesisScalingUtility/img/KinesisAutoscalingGraph.png)
 
-To get started, create a new Elastic Beanstalk application which is a Web Server with a Tomcat predefined configuration. Deploy the WAR by uploading from your local GitHub, or by using S3 URL "s3://meyersi-ire-aws/AWSKinesisScalingUtils/dist/KinesisAutoscaling.war".
+To get started, create a new Elastic Beanstalk application which is a Web Server with a Tomcat predefined configuration. Deploy the WAR by uploading from your local build; see below for build instructions.
 
-Once deployed, you must configure the Autoscaling engine by providing a JSON configuration file on an HTTP or S3 URL. The structure of this configuration file is as follows:
+Once deployed, you must configure the autoscaling engine by providing a JSON configuration file on an HTTP or S3 URL. The structure of this configuration file is as follows:
 
 ```
 [streamMonitor1, streamMonitor2...streamMonitorN]
 ```
 
-a streamMonitor object is a definition of an Autoscaling Policy applied to a Kinesis Stream, and this array allows a single Autoscaling Web App to monitor multiple streams. A streamMonitor object is configured by:
+A `streamMonitor` object defines the autoscaling policy applied to a Kinesis stream, and this array allows a single autoscaling application to monitor multiple streams. A `streamMonitor` object is configured by:
 
-```json
-{"streamName":"String - name of the Stream to be Monitored",
- "region":"String - a Valid AWS Region Code, such as us-east-1 or eu-west-1",
- "scaleOnOperation":"String - the type of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
+```
+{
+ "streamName": "String - name of the Stream to be Monitored",
+ "region": "String - a Valid AWS Region Code, such as us-east-1 or eu-west-1",
+ "scaleOnOperation": "String - the type of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
  "scaleUp": {
-     "scaleThresholdPct":Integer - at what threshold we should scale up,
+     "scaleThresholdPct": Integer - at what threshold we should scale up,
      "scaleAfterMins":Integer - how many minutes above the scaleThreasdholdPct we should wait before scaling up,
      "scaleCount":Integer - number of Shards to scale up by,
      "scalePct":Integer - % of current Stream capacity to scale up by
