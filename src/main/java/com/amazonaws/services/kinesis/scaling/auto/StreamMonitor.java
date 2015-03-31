@@ -364,7 +364,7 @@ public class StreamMonitor implements Runnable {
 
                     // If we have a configured scaling reporter, call it
                     if (reporter != null) {
-                        reporter.publishReport(report);
+                        reporter.publishReport(config.getStreamName(), report);
                     }
 
                     report = null;
