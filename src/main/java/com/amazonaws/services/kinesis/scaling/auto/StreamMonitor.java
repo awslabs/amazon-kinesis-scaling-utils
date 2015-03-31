@@ -119,7 +119,7 @@ public class StreamMonitor implements Runnable {
         // add the stream name dimension
         List<String> fetchMetrics = new ArrayList<>();
 
-        if (this.config.getScaleOnOperation().equals(KinesisOperationType.PUT)) {
+        if (operationType.equals(KinesisOperationType.PUT)) {
             fetchMetrics.add("PutRecord.Bytes");
             fetchMetrics.add("PutRecords.Bytes");
         } else {
@@ -194,8 +194,8 @@ public class StreamMonitor implements Runnable {
             lowSamples += cwSampleDuration - metrics.size();
         }
 
-        LOG.info(String.format("Stream Used Capacity %.2f%% (%,.0f Bytes of %,.0f)",
-                latestPct * 100, latestBytes, streamBytesMax));
+        LOG.info(String.format("Stream %s: Used Capacity %.2f%% (%,.0f Bytes of %,.0f)",
+                config.getStreamName(), latestPct * 100, latestBytes, streamBytesMax));
 
         // check how many samples we have in the last period, and
         // flag the appropriate action
