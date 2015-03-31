@@ -60,6 +60,51 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
 
 Once you've built the Autoscaling configuration required, save it to an HTTP file server or to Amazon S3. Then, access your Elastic Beanstalk application, and select 'Configuration' from the left hand Navigation Menu. Then select the 'Software Configuration' panel, and add a new configuration item called 'config-file-url' that points to the URL of the configuration file. Acceptable formats are 'http://path to file' or 's3://bucket/path to file'. Save the configuration, and then check the application logs for correct operation.
 
+### IAM Role ###
+
+When deploying the application, it must have a service access to Kinesis,
+Cloudwatch and S3, as well as SNS if using the SNS scaling notifications:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "kinesis:Get*",
+                "kinesis:List*",
+                "kinesis:Describe*",
+                "kinesis:MergeShards",
+                "kinesis:SplitShard"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Action": [
+                "sns:Publish"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:sns:us-east-1:01234567890:scaling-test-notification"
+        },
+        {
+            "Action": [
+                "cloudwatch:GetMetricStatistics"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": "arn:aws:s3:::config-bucket-goes-here/*"
+        }
+    ]
+}
+```
+
 ### Notifications ###
 
 To receive SNS notifications when scaling actions are executed, provide the ARN of an SNS topic in the scaling
