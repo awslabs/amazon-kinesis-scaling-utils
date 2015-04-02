@@ -44,15 +44,15 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
  "scaleOnOperation":"String - the type of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
  "scaleUp": {
      "scaleThresholdPct":Integer - at what threshold we should scale up,
-     "scaleAfterMins":Integer - how many minutes above the scaleThreasdholdPct we should wait before scaling up,
+     "scaleAfterMins":Integer - how many minutes above the scaleThresholdPct we should wait before scaling up,
      "scaleCount":Integer - number of Shards to scale up by,
      "scalePct":Integer - % of current Stream capacity to scale up by
  },
  "scaleDown":{
-     "scaleThresholdPct":Integer - at what threshold we should scale up,
-     "scaleAfterMins":Integer - how many minutes above the scaleThreasdholdPct we should wait before scaling up,
-     "scaleCount":Integer - number of Shards to scale up by,
-     "scalePct":Integer - % of current Stream capacity to scale up by,
+     "scaleThresholdPct":Integer - at what threshold we should scale down,
+     "scaleAfterMins":Integer - how many minutes below the scaleThresholdPct we should wait before scaling down,
+     "scaleCount":Integer - number of Shards to scale down by,
+     "scalePct":Integer - % of current Stream capacity to scale down by,
      "coolOffMins":Integer - number of minutes to wait after a Stream scale down before we scale down again
  }
 }
