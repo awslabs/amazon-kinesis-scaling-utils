@@ -226,7 +226,10 @@ public class StreamScalingUtils {
         // create a List of Open shards for sorting
         List<Shard> sortShards = new ArrayList<Shard>();
         for (String s : openShardNames) {
-            sortShards.add(shardMap.get(s).getShard());
+            // paranoid null check in case we get a null map entry
+            if (s != null) {
+                sortShards.add(shardMap.get(s).getShard());
+            }
         }
 
         if (sortOrder.equals(SortOrder.ASCENDING)) {

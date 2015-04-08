@@ -3,7 +3,10 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.amazonaws</groupId>
 	<artifactId>kinesis-scaling-utils</artifactId>
-	<version>.9.1.5</version>
+	<version>.9.1.7</version>
+	<properties>
+	   <sdk-version>1.9.26</sdk-version>
+	</properties>
 	<licenses>
 		<license>
 			<name>Amazon Software License</name>
@@ -12,7 +15,7 @@
 		</license>
 	</licenses>
 	<build>
-		<defaultGoal>verify install assembly:assembly war:war</defaultGoal>
+		<defaultGoal>clean license:format install assembly:assembly war:war</defaultGoal>
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
@@ -93,22 +96,22 @@
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-core</artifactId>
-			<version>1.9.7</version>
+			<version>${sdk-version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-kinesis</artifactId>
-			<version>1.9.7</version>
+			<version>${sdk-version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-s3</artifactId>
-			<version>1.9.7</version>
+			<version>${sdk-version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-cloudwatch</artifactId>
-			<version>1.9.7</version>
+			<version>${sdk-version}</version>
 		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>
