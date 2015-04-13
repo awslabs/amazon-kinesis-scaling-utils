@@ -16,16 +16,6 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.joda.time.DateTime;
-
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
@@ -40,6 +30,17 @@ import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.scaling.ScalingOperationReport;
 import com.amazonaws.services.kinesis.scaling.StreamScaler;
 import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
+import com.amazonaws.services.kinesis.scaling.reporting.SnsReporter;
+import com.amazonaws.services.sns.AmazonSNSClient;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.joda.time.DateTime;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 public class StreamMonitor implements Runnable {
     private final Log LOG = LogFactory.getLog(StreamMonitor.class);
@@ -47,6 +48,8 @@ public class StreamMonitor implements Runnable {
     private AmazonKinesisClient kinesisClient;
 
     private AmazonCloudWatch cloudWatchClient;
+
+    private SnsReporter reporter;
 
     public static final int TIMEOUT_SECONDS = 45;
 
@@ -84,6 +87,11 @@ public class StreamMonitor implements Runnable {
 
         this.kinesisClient = new AmazonKinesisClient(new DefaultAWSCredentialsProviderChain());
         this.kinesisClient.setRegion(Region.getRegion(Regions.fromName(this.config.getRegion())));
+
+        if (config.getSnsArn() != null) {
+            this.reporter = new SnsReporter(new AmazonSNSClient(new DefaultAWSCredentialsProviderChain()),
+                    config.getSnsArn());
+        }
     }
 
     public void stop() {
@@ -119,7 +127,7 @@ public class StreamMonitor implements Runnable {
         // add the stream name dimension
         List<String> fetchMetrics = new ArrayList<>();
 
-        if (this.config.getScaleOnOperation().equals(KinesisOperationType.PUT)) {
+        if (operationType.equals(KinesisOperationType.PUT)) {
             fetchMetrics.add("PutRecord.Bytes");
             fetchMetrics.add("PutRecords.Bytes");
         } else {
@@ -194,8 +202,8 @@ public class StreamMonitor implements Runnable {
             lowSamples += cwSampleDuration - metrics.size();
         }
 
-        LOG.info(String.format("Stream Used Capacity %.2f%% (%,.0f Bytes of %,.0f)",
-                latestPct * 100, latestBytes, streamBytesMax));
+        LOG.info(String.format("Stream %s: Used Capacity %.2f%% (%,.0f Bytes of %,.0f)",
+                config.getStreamName(), latestPct * 100, latestBytes, streamBytesMax));
 
         // check how many samples we have in the last period, and
         // flag the appropriate action
@@ -353,6 +361,12 @@ public class StreamMonitor implements Runnable {
 
                 if (report != null) {
                     LOG.info(report.toString());
+
+                    // If we have a configured scaling reporter, call it
+                    if (reporter != null) {
+                        reporter.publishReport(config.getStreamName(), report);
+                    }
+
                     report = null;
                 }
 
@@ -376,6 +390,7 @@ public class StreamMonitor implements Runnable {
             LOG.info(String.format("Stream Monitor for %s in %s Completed. Exiting.",
                     this.config.getStreamName(), this.config.getRegion()));
         } catch (Exception e) {
+            LOG.error(String.format("Stream monitor for %s encountered an exception", this.config.getStreamName()), e);
             this.exception = e;
         }
     }

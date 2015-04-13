@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.amazonaws</groupId>
 	<artifactId>kinesis-scaling-utils</artifactId>
-	<version>.9.1.7</version>
+	<version>0.9.1.7</version>
 	<properties>
 	   <sdk-version>1.9.26</sdk-version>
 	</properties>
@@ -35,6 +35,13 @@
 			</testResource>
 		</testResources>
 		<plugins>
+			<plugin>
+				<groupId>org.mortbay.jetty</groupId>
+				<artifactId>jetty-maven-plugin</artifactId>
+				<configuration>
+					<webAppSourceDirectory>${basedir}/src/main/WebContent</webAppSourceDirectory>
+				</configuration>
+			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<version>2.1</version>
@@ -69,27 +76,26 @@
 				<configuration>
 					<warSourceDirectory>src/main/WebContent</warSourceDirectory>
 					<failOnMissingWebXml>true</failOnMissingWebXml>
-					<warName>KinesisAutoscaling</warName>
 				</configuration>
 			</plugin>
 			<plugin>
-                <groupId>com.mycila</groupId>
-                <artifactId>license-maven-plugin</artifactId>
-                <version>2.3</version>
-                <configuration>
-                    <header>${basedir}/license/asl/header.txt</header>
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+	      <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>2.3</version>
+        <configuration>
+            <header>${basedir}/license/asl/header.txt</header>
+            <includes>
+                <include>**/*.java</include>
+            </includes>
+        </configuration>
+        <executions>
+            <execution>
+                <goals>
+                    <goal>check</goal>
+                </goals>
+            </execution>
+        </executions>
+    	</plugin>
 		</plugins>
 	</build>
 	<dependencies>
@@ -106,6 +112,11 @@
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-s3</artifactId>
+			<version>${sdk-version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-sns</artifactId>
 			<version>${sdk-version}</version>
 		</dependency>
 		<dependency>

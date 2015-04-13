@@ -16,14 +16,14 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 /**
  * The AutoscalingController runs StreamMonitors in a Thread Pool for each of
