@@ -14,7 +14,6 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-
 package com.amazonaws.services.kinesis.scaling;
 
 import java.text.NumberFormat;
@@ -288,14 +287,14 @@ public class StreamScaler {
                 reportProgress(shardsCompleted, shardStack.size(), startTime);
             }
 
-            if (shardStack.isEmpty()) {
+            if (shardStack.empty()) {
                 return reportFor(streamName, operationsMade);
             }
 
             ShardHashInfo lowerShard = shardStack.pop();
 
             if (StreamScalingUtils.softCompare(lowerShard.getPctWidth(), targetPct) < 0) {
-                if (shardStack.isEmpty()) {
+                if (shardStack.empty()) {
                     // our last shard is smaller than the target size, but
                     // there's nothing else to do
                     return reportFor(streamName, operationsMade);
@@ -306,11 +305,9 @@ public class StreamScaler {
                     if (StreamScalingUtils.softCompare(
                             lowerShard.getPctWidth() + higherShard.getPctWidth(), targetPct) > 0) {
                         // The two lowest shards are larger than the target
-                        // size, so
-                        // split the upper at the target offset and merge the
-                        // lower
-                        // of
-                        // the two new shards to the lowest shard
+                        // size, so split the upper at the target offset and
+                        // merge the lower of the two new shards to the lowest
+                        // shard
                         AdjacentShards splitUpper = higherShard.doSplit(kinesisClient, targetPct
                                 - lowerShard.getPctWidth());
                         operationsMade++;
@@ -356,7 +353,7 @@ public class StreamScaler {
                 shardStack.push(splitLower.getHigherShard());
                 shardsCompleted++;
             }
-        } while (shardStack.size() > 0 || !shardStack.isEmpty());
+        } while (shardStack.size() > 0 || !shardStack.empty());
 
         return reportFor(streamName, operationsMade);
     }

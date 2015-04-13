@@ -51,6 +51,10 @@ public class ShardHashInfo {
             "340282366920938463463374607431768211455");
 
     public ShardHashInfo(String streamName, Shard shard) {
+        // prevent constructing a null object
+        if (streamName == null || shard == null) {
+            throw new ExceptionInInitializerError("Stream Name & Shard Required");
+        }
         this.shard = shard;
         this.streamName = streamName;
         this.endHash = new BigInteger(shard.getHashKeyRange().getEndingHashKey());
