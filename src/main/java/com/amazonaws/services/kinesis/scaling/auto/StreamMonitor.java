@@ -57,7 +57,7 @@ public class StreamMonitor implements Runnable {
     private AutoscalingConfiguration config;
 
     @SuppressWarnings("unused")
-    private boolean keepRunning = true;
+    private volatile boolean keepRunning = true;
 
     private DateTime lastScaleDown = null;
 
