@@ -16,6 +16,8 @@ stream-name - The name of the Stream to be scaled
 scaling-action - The action to be taken to scale. Must be one of "scaleUp”, "scaleDown" or “resize"
 count - Number of shards by which to absolutely scale up or down, or resize to or:
 pct - Percentage of the existing number of shards by which to scale up or down
+min-shards - The minimum number of shards to maintain
+max-shards - The maximum number of shards which will cap the scaling operation
 region - The Region where the Stream exists, such as us-east-1 or eu-west-1 (default us-east-1)
 shard-id - The Shard which you want to target for Scaling. NOTE: This will create imbalanced partitioning of the Keyspace
 ```
@@ -42,6 +44,8 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
 {"streamName":"String - name of the Stream to be Monitored",
  "region":"String - a Valid AWS Region Code, such as us-east-1 or eu-west-1",
  "scaleOnOperation":"String - the type of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
+ "minShards":"Integer - the minimum number of Shards to maintain in the Stream at all times",
+ "maxShards":"Integer - the maximum number of Shards to have in the Stream regardless of capacity used",
  "scaleUp": {
      "scaleThresholdPct":Integer - at what threshold we should scale up,
      "scaleAfterMins":Integer - how many minutes above the scaleThresholdPct we should wait before scaling up,

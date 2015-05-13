@@ -40,112 +40,142 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 @SuppressWarnings("serial")
 public class AutoscalingConfiguration implements Serializable {
-    private static final Log LOG = LogFactory.getLog(AutoscalingConfiguration.class);
+	private static final Log LOG = LogFactory
+			.getLog(AutoscalingConfiguration.class);
 
-    private static ObjectMapper mapper = new ObjectMapper();
+	private static ObjectMapper mapper = new ObjectMapper();
 
-    private String streamName, region;
+	private String streamName, region;
 
-    private KinesisOperationType scaleOnOperation;
+	private KinesisOperationType scaleOnOperation;
 
-    private ScalingConfig scaleUp;
+	private ScalingConfig scaleUp;
 
-    private ScalingConfig scaleDown;
+	private ScalingConfig scaleDown;
 
-    public String getStreamName() {
-        return streamName;
-    }
+	private Integer minShards;
 
-    public void setStreamName(String streamName) {
-        this.streamName = streamName;
-    }
+	private Integer maxShards;
 
-    public String getRegion() {
-        return region;
-    }
+	public String getStreamName() {
+		return streamName;
+	}
 
-    public void setRegion(String region) {
-        this.region = region;
-    }
+	public void setStreamName(String streamName) {
+		this.streamName = streamName;
+	}
 
-    public KinesisOperationType getScaleOnOperation() {
-        return scaleOnOperation;
-    }
+	public String getRegion() {
+		return region;
+	}
 
-    public void setScaleOnOperation(KinesisOperationType scaleOnOperation) throws Exception {
-        this.scaleOnOperation = scaleOnOperation;
-    }
+	public void setRegion(String region) {
+		this.region = region;
+	}
 
-    public ScalingConfig getScaleUp() {
-        return scaleUp;
-    }
+	public KinesisOperationType getScaleOnOperation() {
+		return scaleOnOperation;
+	}
 
-    public void setScaleUp(ScalingConfig scaleUp) {
-        this.scaleUp = scaleUp;
-    }
+	public void setScaleOnOperation(KinesisOperationType scaleOnOperation)
+			throws Exception {
+		this.scaleOnOperation = scaleOnOperation;
+	}
 
-    public ScalingConfig getScaleDown() {
-        return scaleDown;
-    }
+	public ScalingConfig getScaleUp() {
+		return scaleUp;
+	}
 
-    public void setScaleDown(ScalingConfig scaleDown) {
-        this.scaleDown = scaleDown;
-    }
+	public void setScaleUp(ScalingConfig scaleUp) {
+		this.scaleUp = scaleUp;
+	}
 
-    public static AutoscalingConfiguration[] loadFromURL(String url) throws IOException {
-        File configFile = null;
+	public ScalingConfig getScaleDown() {
+		return scaleDown;
+	}
 
-        if (url.startsWith("s3://")) {
-            // download the configuration from S3
-            AmazonS3 s3Client = new AmazonS3Client(new DefaultAWSCredentialsProviderChain());
+	public void setScaleDown(ScalingConfig scaleDown) {
+		this.scaleDown = scaleDown;
+	}
 
-            TransferManager tm = new TransferManager(s3Client);
+	public Integer getMinShards() {
+		return minShards;
+	}
 
-            // parse the config path to get the bucket name and prefix
-            final String s3ProtoRegex = "s3:\\/\\/";
-            String bucket = url.replaceAll(s3ProtoRegex, "").split("/")[0];
-            String prefix = url.replaceAll(String.format("%s%s\\/", s3ProtoRegex, bucket), "");
+	public void setMinShards(Integer minShards) {
+		this.minShards = minShards;
+	}
 
-            // download the file using TransferManager
-            configFile = File.createTempFile(url, null);
-            Download download = tm.download(bucket, prefix, configFile);
-            try {
-                download.waitForCompletion();
-            } catch (InterruptedException e) {
-                throw new IOException(e);
-            }
+	public Integer getMaxShards() {
+		return maxShards;
+	}
 
-            // shut down the transfer manager
-            tm.shutdownNow();
+	public void setMaxShards(Integer maxShards) {
+		this.maxShards = maxShards;
+	}
 
-            LOG.info(String.format("Loaded Configuration from Amazon S3 %s/%s to %s", bucket,
-                    prefix, configFile.getAbsolutePath()));
-        } else if (url.startsWith("http")) {
-            configFile = File.createTempFile("kinesis-autoscaling-config", null);
-            FileUtils.copyURLToFile(new URL(url), configFile, 1000, 1000);
-            LOG.info(String.format("Loaded Configuration from %s to %s", url,
-                    configFile.getAbsolutePath()));
-        } else {
-            try {
-                InputStream classpathConfig = AutoscalingConfiguration.class.getClassLoader().getResourceAsStream(
-                        url);
-                if (classpathConfig != null && classpathConfig.available() > 0) {
-                    configFile = new File(AutoscalingConfiguration.class.getResource(
-                            (url.startsWith("/") ? "" : "/") + url).toURI());
-                } else {
-                    throw new IOException("Unable to load local file from " + url);
-                }
-            } catch (URISyntaxException e) {
-                throw new IOException(e);
-            }
-            LOG.info(String.format("Loaded Configuration local %s", url));
-        }
+	public static AutoscalingConfiguration[] loadFromURL(String url)
+			throws IOException {
+		File configFile = null;
 
-        // read the json config into an array of autoscaling
-        // configurations
-        AutoscalingConfiguration[] configuration = mapper.readValue(configFile,
-                AutoscalingConfiguration[].class);
+		if (url.startsWith("s3://")) {
+			// download the configuration from S3
+			AmazonS3 s3Client = new AmazonS3Client(
+					new DefaultAWSCredentialsProviderChain());
 
-        return configuration;
-    }
+			TransferManager tm = new TransferManager(s3Client);
+
+			// parse the config path to get the bucket name and prefix
+			final String s3ProtoRegex = "s3:\\/\\/";
+			String bucket = url.replaceAll(s3ProtoRegex, "").split("/")[0];
+			String prefix = url.replaceAll(
+					String.format("%s%s\\/", s3ProtoRegex, bucket), "");
+
+			// download the file using TransferManager
+			configFile = File.createTempFile(url, null);
+			Download download = tm.download(bucket, prefix, configFile);
+			try {
+				download.waitForCompletion();
+			} catch (InterruptedException e) {
+				throw new IOException(e);
+			}
+
+			// shut down the transfer manager
+			tm.shutdownNow();
+
+			LOG.info(String.format(
+					"Loaded Configuration from Amazon S3 %s/%s to %s", bucket,
+					prefix, configFile.getAbsolutePath()));
+		} else if (url.startsWith("http")) {
+			configFile = File
+					.createTempFile("kinesis-autoscaling-config", null);
+			FileUtils.copyURLToFile(new URL(url), configFile, 1000, 1000);
+			LOG.info(String.format("Loaded Configuration from %s to %s", url,
+					configFile.getAbsolutePath()));
+		} else {
+			try {
+				InputStream classpathConfig = AutoscalingConfiguration.class
+						.getClassLoader().getResourceAsStream(url);
+				if (classpathConfig != null && classpathConfig.available() > 0) {
+					configFile = new File(
+							AutoscalingConfiguration.class.getResource(
+									(url.startsWith("/") ? "" : "/") + url)
+									.toURI());
+				} else {
+					throw new IOException("Unable to load local file from "
+							+ url);
+				}
+			} catch (URISyntaxException e) {
+				throw new IOException(e);
+			}
+			LOG.info(String.format("Loaded Configuration local %s", url));
+		}
+
+		// read the json config into an array of autoscaling
+		// configurations
+		AutoscalingConfiguration[] configuration = mapper.readValue(configFile,
+				AutoscalingConfiguration[].class);
+
+		return configuration;
+	}
 }
