@@ -339,12 +339,14 @@ public class StreamScaler {
 				// stop scaling if we've reached the min or max count
 				boolean stopOnCap = false;
 				String message = null;
-				if (minCount != null && currentCount == minCount) {
+				if (minCount != null && currentCount == minCount
+						&& targetShards <= minCount) {
 					stopOnCap = true;
 					message = String.format(
 							"Minimum Shard Count of %s Reached", minCount);
 				}
-				if (maxCount != null && currentCount == maxCount) {
+				if (maxCount != null && currentCount == maxCount
+						&& targetShards >= maxCount) {
 					message = String.format(
 							"Maximum Shard Count of %s Reached", maxCount);
 					stopOnCap = true;
