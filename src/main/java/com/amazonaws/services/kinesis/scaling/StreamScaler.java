@@ -271,6 +271,10 @@ public class StreamScaler {
 		int operationsMade = 0;
 		final int currentShards = StreamScalingUtils.getOpenShardCount(
 				kinesisClient, streamName);
+		if (currentShards == targetShardCount) {
+			LOG.info("Skipping scaling operation. The new number of shards is equal to the current one.");
+			return null;
+		}
 		final double pct = 1d / targetShardCount;
 		int shardsCompleted = 0;
 		final long startTime = System.currentTimeMillis();
