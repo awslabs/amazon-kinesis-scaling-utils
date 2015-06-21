@@ -116,23 +116,50 @@ public class StreamMonitor implements Runnable {
 		return maxBytes;
 	}
 
+	/**
+	 * method which returns the current max capacity of a Stream based on
+	 * configuration of alarms on PUTS or GETS
+	 */
+	protected int getStreamRecordsMax() throws Exception {
+		LOG.debug(String.format("Refreshing Stream %s Throughput Information",
+				this.config.getStreamName()));
+		Integer openShards = StreamScalingUtils.getOpenShardCount(
+				this.kinesisClient, this.config.getStreamName());
+
+		int maxRecords = openShards.intValue()
+				* config.getScaleOnOperation().getMaxRecords();
+		LOG.debug(String.format(
+				"Stream Capacity %s Open Shards, %,d Records/Second", openShards,
+				maxRecords));
+		return maxRecords;
+	}
+	
 	/*
 	 * generate a single cloudwatch request for GET operations, as this is
 	 * instrumented as a single GetRecords metric, or create two for PUT as this
 	 * is instrumented as both PutRecord and PutRecords
 	 */
 	private List<GetMetricStatisticsRequest> getCloudwatchRequests(
-			KinesisOperationType operationType) {
+			KinesisOperationType operationType,
+			KinesisOperationLimit limit) {
 		List<GetMetricStatisticsRequest> reqs = new ArrayList<>();
 		// configure cloudwatch to determine the current stream metrics
 		// add the stream name dimension
 		List<String> fetchMetrics = new ArrayList<>();
 
 		if (this.config.getScaleOnOperation().equals(KinesisOperationType.PUT)) {
-			fetchMetrics.add("PutRecord.Bytes");
-			fetchMetrics.add("PutRecords.Bytes");
+			if (this.config.getOperationLimit() == KinesisOperationLimit.BYTES) {
+				fetchMetrics.add("PutRecord.Bytes");
+				fetchMetrics.add("PutRecords.Bytes");
+			} else {
+				fetchMetrics.add("IncomingRecords");
+			}			
 		} else {
-			fetchMetrics.add("GetRecords.Bytes");
+			if (this.config.getOperationLimit() == KinesisOperationLimit.BYTES) {
+				fetchMetrics.add("GetRecords.Bytes");
+			} else {
+				fetchMetrics.add("GetRecords.Success");
+			}			
 		}
 
 		for (String s : fetchMetrics) {
@@ -156,16 +183,20 @@ public class StreamMonitor implements Runnable {
 
 	/* method has bee lifted out of run() for unit testing purposes */
 	protected ScalingOperationReport processCloudwatchMetrics(
-			Map<Datapoint, Double> metrics, double streamBytesMax,
-			int cwSampleDuration, String scaleUpByLabel,
-			String scaleDownByLabel, DateTime now) throws Exception {
+			Map<Datapoint, Double> metrics, 
+			double streamMax,
+			int cwSampleDuration, 
+			String scaleUpByLabel,
+			String scaleDownByLabel, 
+			DateTime now) throws Exception {
+		
 		ScalingOperationReport report = null;
-		double currentBytesMax = 0D;
+		double currentMax = 0D;
 		double currentPct = 0D;
 		int lowSamples = 0;
 		int highSamples = 0;
 		double latestPct = 0d;
-		double latestBytes = 0d;
+		double latest = 0d;
 		DateTime lastTime = null;
 		ScaleDirection scaleDirection = null;
 
@@ -178,28 +209,31 @@ public class StreamMonitor implements Runnable {
 		// process the data point aggregates retrieved from CloudWatch
 		// and log scale up/down votes by period
 		for (Datapoint d : metrics.keySet()) {
-			currentBytesMax = metrics.get(d);
-			currentPct = currentBytesMax / streamBytesMax;
+			
+			currentMax = metrics.get(d);
+			currentPct = currentMax / streamMax;
 
 			// keep track of the last measures
 			if (lastTime == null
 					|| new DateTime(d.getTimestamp()).isAfter(lastTime)) {
 				latestPct = currentPct;
-				latestBytes = currentBytesMax;
+				latest = currentMax;
 			}
 			lastTime = new DateTime(d.getTimestamp());
 
 			// if the pct for the datapoint exceeds or is below the
 			// thresholds, then add low/high samples
-			if (currentPct > new Double(this.config.getScaleUp()
-					.getScaleThresholdPct()) / 100) {
-				LOG.debug("Cached High Alarm Condition for " + currentBytesMax
-						+ " bytes (" + currentPct + "%)");
+			if (currentPct > new Double(
+					this.config.getScaleUp().getScaleThresholdPct()) / 100) {
+				LOG.debug("Cached High Alarm Condition for " + currentMax + 
+						((this.config.getOperationLimit()==KinesisOperationLimit.BYTES)?" bytes":" records") +
+						"  (" + currentPct + "%)");
 				highSamples++;
-			} else if (currentPct < new Double(this.config.getScaleDown()
-					.getScaleThresholdPct()) / 100) {
-				LOG.debug("Cached Low Alarm Condition for " + currentBytesMax
-						+ " bytes (" + currentPct + "%)");
+			} else if (currentPct < new Double(
+					this.config.getScaleDown().getScaleThresholdPct()) / 100) {
+				LOG.debug("Cached Low Alarm Condition for " + currentMax + 
+						((this.config.getOperationLimit()==KinesisOperationLimit.BYTES)?" bytes":" records") +
+						" (" + currentPct + "%)");
 				lowSamples++;
 			}
 		}
@@ -211,8 +245,9 @@ public class StreamMonitor implements Runnable {
 		}
 
 		LOG.info(String.format(
-				"Stream Used Capacity %.2f%% (%,.0f Bytes of %,.0f)",
-				latestPct * 100, latestBytes, streamBytesMax));
+				"Stream Used Capacity %.2f%% (%,.0f of %,.0f)" +
+				((this.config.getOperationLimit()==KinesisOperationLimit.BYTES)?" bytes":" records")
+				, latestPct * 100, latest, streamMax));
 
 		// check how many samples we have in the last period, and
 		// flag the appropriate action
@@ -257,8 +292,10 @@ public class StreamMonitor implements Runnable {
 				LOG.info(String
 						.format("Deferring Scale Down until Cool Off Period of %s Minutes has elapsed",
 								this.config.getScaleDown().getCoolOffMins()));
-			} else if (streamBytesMax == this.config.getScaleOnOperation()
-					.getMaxBytes()) {
+			} else if (streamMax == 
+						(this.config.getOperationLimit()==KinesisOperationLimit.BYTES?
+								this.config.getScaleOnOperation().getMaxBytes():
+								this.config.getScaleOnOperation().getMaxRecords())) { 
 				// do nothing - we're already at 1 shard
 				LOG.debug("Not Scaling Down - Already at Minimum of 1 Shard");
 			} else {
@@ -302,14 +339,18 @@ public class StreamMonitor implements Runnable {
 				System.currentTimeMillis());
 
 		// determine shard capacity on the metric we will scale on
-		int streamBytesMax;
+		int streamMax;
 		try {
-			streamBytesMax = getStreamBytesMax();
+			if (this.config.getOperationLimit() == KinesisOperationLimit.BYTES) {
+				streamMax = getStreamBytesMax();
+			} else {
+				streamMax = getStreamRecordsMax();
+			}
 		} catch (Exception e) {
 			this.exception = e;
 			return;
 		}
-
+		
 		// configure log labels
 		String scaleUpByLabel = "";
 		String scaleDownByLabel = "";
@@ -333,8 +374,9 @@ public class StreamMonitor implements Runnable {
 						.getScaleAfterMins());
 
 		// add the metric name dimension
-		List<GetMetricStatisticsRequest> cwRequests = getCloudwatchRequests(config
-				.getScaleOnOperation());
+		List<GetMetricStatisticsRequest> cwRequests = getCloudwatchRequests(
+				config.getScaleOnOperation(),
+				config.getOperationLimit());
 
 		try {
 			ScalingOperationReport report = null;
@@ -350,14 +392,14 @@ public class StreamMonitor implements Runnable {
 
 				Map<Datapoint, Double> metrics = new HashMap<>();
 
-				// iterate through all the requested CloudWatch metrics (either
-				// a single GetRecords, or two: PutRecord and PutRecords and
-				// collapse them down into a single map of sum bytes indexed by
-				// datapoint
-				//
+				// Iterate through all the requested CloudWatch metrics.
+				// If PutRecord and PutRecords have been requested then
+				// they will be collapsed down into a single map of sum 
+				// (bytes or records) indexed by datapoint.
+
 				// TODO Figure out how to mock this bit
 				for (GetMetricStatisticsRequest req : cwRequests) {
-					double sampleBytes = 0D;
+					double sample = 0D;
 
 					req.withStartTime(metricStartTime.toDate()).withEndTime(
 							metricEndTime.toDate());
@@ -373,23 +415,32 @@ public class StreamMonitor implements Runnable {
 					// that PutRecords and PutRecord measures are added together
 					for (Datapoint d : cloudWatchMetrics.getDatapoints()) {
 						if (metrics.containsKey(d)) {
-							sampleBytes = metrics.get(d);
+							sample = metrics.get(d);
 						} else {
-							sampleBytes = 0d;
+							sample = 0d;
 						}
-						sampleBytes += (d.getSum() / CLOUDWATCH_PERIOD);
-						metrics.put(d, sampleBytes);
+						sample += (d.getSum() / CLOUDWATCH_PERIOD);
+						metrics.put(d, sample);
 					}
 				}
 
 				// process the aggregated set of Cloudwatch Datapoints
-				report = processCloudwatchMetrics(metrics, streamBytesMax,
-						cwSampleDuration, scaleUpByLabel, scaleDownByLabel, now);
+				report = processCloudwatchMetrics(
+						metrics, 
+						streamMax,
+						cwSampleDuration, 
+						scaleUpByLabel, 
+						scaleDownByLabel, 
+						now);
 
 				if (report != null) {
 					// refresh the current max capacity after the
 					// modification
-					streamBytesMax = getStreamBytesMax();
+					if (this.config.getOperationLimit() == KinesisOperationLimit.BYTES) {
+						streamMax = getStreamBytesMax();
+					} else {
+						streamMax = getStreamRecordsMax();
+					}
 					lastShardCapacityRefreshTime = now;
 				}
 
@@ -402,7 +453,11 @@ public class StreamMonitor implements Runnable {
 				// has manually updated the number of shards
 				if (now.minusMinutes(REFRESH_SHARD_CAPACITY_MINS).isAfter(
 						lastShardCapacityRefreshTime)) {
-					streamBytesMax = getStreamBytesMax();
+					if (this.config.getOperationLimit() == KinesisOperationLimit.BYTES) {
+						streamMax = getStreamBytesMax();
+					} else {
+						streamMax = getStreamRecordsMax();
+					}
 					lastShardCapacityRefreshTime = now;
 				}
 

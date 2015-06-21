@@ -48,6 +48,8 @@ public class AutoscalingConfiguration implements Serializable {
 	private String streamName, region;
 
 	private KinesisOperationType scaleOnOperation;
+	
+	private KinesisOperationLimit operationLimit;
 
 	private ScalingConfig scaleUp;
 
@@ -112,6 +114,14 @@ public class AutoscalingConfiguration implements Serializable {
 
 	public void setMaxShards(Integer maxShards) {
 		this.maxShards = maxShards;
+	}
+
+	public KinesisOperationLimit getOperationLimit() {
+		return operationLimit;
+	}
+
+	public void setOperationLimit(KinesisOperationLimit operationLimit) {
+		this.operationLimit = operationLimit;
 	}
 
 	public static AutoscalingConfiguration[] loadFromURL(String url)
