@@ -44,6 +44,7 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
 {"streamName":"String - name of the Stream to be Monitored",
  "region":"String - a Valid AWS Region Code, such as us-east-1 or eu-west-1",
  "scaleOnOperation":"String - the type of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
+ "operationLimit":"String - the type of limit to be monitored, including BYTES or RECORDS".
  "minShards":"Integer - the minimum number of Shards to maintain in the Stream at all times",
  "maxShards":"Integer - the maximum number of Shards to have in the Stream regardless of capacity used",
  "scaleUp": {

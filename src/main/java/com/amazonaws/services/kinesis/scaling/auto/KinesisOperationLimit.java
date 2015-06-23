@@ -16,25 +16,7 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
-public enum KinesisOperationType {
-    PUT {
-        public int getMaxBytes() {
-            return 1_048_576;
-        }
-        public int getMaxRecords() {
-            return 1_000;
-        }
-    },
-    GET {
-        public int getMaxBytes() {
-            return 2_097_152;
-        }
-        public int getMaxRecords() {
-            return 2_000;
-        }
-    };
-
-    public abstract int getMaxBytes();
-    public abstract int getMaxRecords();
-    
+public enum KinesisOperationLimit {
+	BYTES,
+	RECORDS
 }
