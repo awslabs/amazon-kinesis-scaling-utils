@@ -49,13 +49,13 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
  "scaleUp": {
      "scaleThresholdPct":Integer - at what threshold we should scale up,
      "scaleAfterMins":Integer - how many minutes above the scaleThresholdPct we should wait before scaling up,
-     "scaleCount":Integer - number of Shards to scale up by,
+     "scaleCount":Integer - number of Shards to scale up by (prevails over scalePct),
      "scalePct":Integer - % of current Stream capacity to scale up by
  },
  "scaleDown":{
      "scaleThresholdPct":Integer - at what threshold we should scale down,
      "scaleAfterMins":Integer - how many minutes below the scaleThresholdPct we should wait before scaling down,
-     "scaleCount":Integer - number of Shards to scale down by,
+     "scaleCount":Integer - number of Shards to scale down by (prevails over scalePct),
      "scalePct":Integer - % of current Stream capacity to scale down by,
      "coolOffMins":Integer - number of minutes to wait after a Stream scale down before we scale down again
  }

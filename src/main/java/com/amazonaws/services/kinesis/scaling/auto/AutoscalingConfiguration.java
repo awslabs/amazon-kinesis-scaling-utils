@@ -56,6 +56,8 @@ public class AutoscalingConfiguration implements Serializable {
 	private Integer minShards;
 
 	private Integer maxShards;
+	
+	private Integer refreshShardsNumberAfterMin;
 
 	public String getStreamName() {
 		return streamName;
@@ -114,6 +116,14 @@ public class AutoscalingConfiguration implements Serializable {
 		this.maxShards = maxShards;
 	}
 
+	public Integer getRefreshShardsNumberAfterMin() {
+		return refreshShardsNumberAfterMin;
+	}
+
+	public void setRefreshShardsNumberAfterMin(Integer refreshShardsNumberAfterMin) {
+		this.refreshShardsNumberAfterMin = refreshShardsNumberAfterMin;
+	}
+
 	public static AutoscalingConfiguration[] loadFromURL(String url)
 			throws IOException {
 		File configFile = null;
@@ -162,8 +172,13 @@ public class AutoscalingConfiguration implements Serializable {
 									(url.startsWith("/") ? "" : "/") + url)
 									.toURI());
 				} else {
-					throw new IOException("Unable to load local file from "
-							+ url);
+					//last fallback to a FS location
+					configFile = new File(url);
+					
+					if(!configFile.exists()) {						
+						throw new IOException("Unable to load local file from "
+								+ url);						
+					}
 				}
 			} catch (URISyntaxException e) {
 				throw new IOException(e);
