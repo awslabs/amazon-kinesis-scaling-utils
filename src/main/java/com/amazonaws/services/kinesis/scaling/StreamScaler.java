@@ -171,6 +171,10 @@ public class StreamScaler {
 
 		int currentSize = StreamScalingUtils.getOpenShardCount(kinesisClient,
 				streamName);
+		
+		if(currentSize == 1) {
+			throw new AlreadyOneShardException();
+		}
 
 		return doResize(streamName, Math.max(currentSize - byShardCount, 1),
 				minShards, maxShards);
@@ -194,6 +198,9 @@ public class StreamScaler {
 
 		int currentSize = StreamScalingUtils.getOpenShardCount(kinesisClient,
 				streamName);
+		if(currentSize == 1) {
+			throw new AlreadyOneShardException();
+		}
 
 		int newSize = Math.max(
 				new Double(Math.ceil(currentSize - (currentSize * scalePct)))

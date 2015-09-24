@@ -16,17 +16,48 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public enum KinesisOperationType {
     PUT {
-        public int getMaxBytes() {
-            return 1_048_576;
+		@Override
+        public StreamMetrics getMaxCapacity() {
+			StreamMetrics metrics = new StreamMetrics();
+			metrics.put(StreamMetric.Bytes, 1_048_576);
+			metrics.put(StreamMetric.Records, 1000);
+			return metrics;
         }
+
+		@Override
+		public List<String> getMetricsToFetch() {
+			List<String> metricsToFetch = new ArrayList<String>();
+			metricsToFetch.add("PutRecord.Bytes");
+			metricsToFetch.add("PutRecords.Bytes");
+			metricsToFetch.add("PutRecord.Success");
+			metricsToFetch.add("PutRecords.Records");
+			return metricsToFetch;
+		}
     },
     GET {
-        public int getMaxBytes() {
-            return 2_097_152;
+		@Override
+        public StreamMetrics getMaxCapacity() {
+			StreamMetrics metrics = new StreamMetrics();
+			metrics.put(StreamMetric.Bytes, 2_097_152);
+			metrics.put(StreamMetric.Records, 2000);
+			return metrics;
         }
+
+		@Override
+		public List<String> getMetricsToFetch() {
+			List<String> metricsToFetch = new ArrayList<String>();
+			metricsToFetch.add("GetRecords.Bytes");
+			metricsToFetch.add("GetRecords.Success");
+			return metricsToFetch;			
+		}
     };
 
-    public abstract int getMaxBytes();
+    public abstract StreamMetrics getMaxCapacity();
+    public abstract List<String> getMetricsToFetch();
+
 }

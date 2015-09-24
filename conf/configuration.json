@@ -1,0 +1,21 @@
+[
+	{
+        "streamName": "mil-dev-beaconEvents",
+        "region": "eu-west-1",
+        "scaleOnOperation": "PUT",
+        "minShards": 2,
+        "maxShards": 16,
+        "refreshShardsNumberAfterMin": 3,
+        "scaleUp": {
+            "scaleThresholdPct": 75,
+            "scaleAfterMins": 2,
+            "scalePct": 100
+        },
+        "scaleDown": {
+            "scaleThresholdPct": 25,
+            "scaleAfterMins": 2,
+            "scalePct": 50,
+            "coolOffMins": 2
+        }
+    }
+]
