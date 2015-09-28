@@ -60,14 +60,10 @@ public class StreamMonitor implements Runnable {
 
 	private DateTime lastScaleDown = null;
 
-	private enum ScaleDirection {
-		UP, DOWN;
-	}
-
 	private StreamScaler scaler = null;
 
 	private Exception exception;
-
+	
 	/* incomplete constructor only for testing */
 	protected StreamMonitor(AutoscalingConfiguration config, StreamScaler scaler)
 			throws Exception {
@@ -161,7 +157,7 @@ public class StreamMonitor implements Runnable {
 			int cwSampleDuration, DateTime now)  {
 
 		ScalingOperationReport report = null;
-		Map<StreamMetric, ScaleDirection> scaleDirectionPerMetric = new HashMap<StreamMetric, StreamMonitor.ScaleDirection>();
+		Map<StreamMetric, ScaleDirection> scaleDirectionPerMetric = new HashMap<StreamMetric, ScaleDirection>();
 
 		for (StreamMetric metric: metricsMap.keySet()) {
 
@@ -423,6 +419,9 @@ public class StreamMonitor implements Runnable {
 				}
 
 				if (report != null) {
+					if(this.config.getScalingOperationReportListener() != null) {
+						this.config.getScalingOperationReportListener().onReport(report);						
+					}
 					LOG.info(report.toString());
 					report = null;
 				}

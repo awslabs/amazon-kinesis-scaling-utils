@@ -59,6 +59,8 @@ public class AutoscalingConfiguration implements Serializable {
 	
 	private Integer refreshShardsNumberAfterMin;
 
+	private IScalingOperationReportListener scalingOperationReportListener;
+
 	public String getStreamName() {
 		return streamName;
 	}
@@ -122,6 +124,10 @@ public class AutoscalingConfiguration implements Serializable {
 
 	public void setRefreshShardsNumberAfterMin(Integer refreshShardsNumberAfterMin) {
 		this.refreshShardsNumberAfterMin = refreshShardsNumberAfterMin;
+	}
+
+	public IScalingOperationReportListener getScalingOperationReportListener() {
+		return scalingOperationReportListener;
 	}
 
 	public static AutoscalingConfiguration[] loadFromURL(String url)
