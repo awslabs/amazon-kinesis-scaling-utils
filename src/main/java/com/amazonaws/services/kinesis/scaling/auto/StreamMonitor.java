@@ -27,6 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.http.IdleConnectionReaper;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
@@ -89,6 +90,9 @@ public class StreamMonitor implements Runnable {
 
 	public void stop() {
 		this.keepRunning = false;
+		this.kinesisClient.shutdown();
+		this.cloudWatchClient.shutdown();
+        IdleConnectionReaper.shutdown(); //the idle-connection-reaper is causing a thread leak without an explicit shutdown
 		LOG.info(String.format("Signalling Monitor for Stream %s to Stop",
 				config.getStreamName()));
 	}
@@ -441,7 +445,7 @@ public class StreamMonitor implements Runnable {
 					LOG.error(e);
 					break;
 				}
-			} while (keepRunning = true);
+			} while (keepRunning);
 
 			LOG.info(String.format(
 					"Stream Monitor for %s in %s Completed. Exiting.",
@@ -462,5 +466,9 @@ public class StreamMonitor implements Runnable {
 
 	protected void setLastScaleDown(DateTime setLastScaleDown) {
 		this.lastScaleDown = setLastScaleDown;
+	}
+	
+	AutoscalingConfiguration getConfig() {
+		return this.config;
 	}
 }

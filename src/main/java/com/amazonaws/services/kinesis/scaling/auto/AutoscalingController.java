@@ -102,12 +102,13 @@ public class AutoscalingController implements Runnable {
 
 	public void stopAll() throws Exception {
 		for (Integer i : runningMonitors.keySet()) {
-			LOG.debug("Stopping Stream Monitor");
-			runningMonitors.get(i).stop();
-
+			StreamMonitor monitor = runningMonitors.get(i);
+			LOG.debug("Stopping Stream Monitor: " + monitor.getConfig().getStreamName() + " ...");
+			monitor.stop();
 			// block until the Future returns that the Stream Monitor has
 			// stopped
 			monitorFutures.get(i).get();
+			LOG.debug("Stream Monitor: " + monitor.getConfig().getStreamName() + " stopped");
 		}
 	}
 
@@ -152,8 +153,8 @@ public class AutoscalingController implements Runnable {
 				stopAll();
 
 				// stop the executor service
-				LOG.error(e);
-				LOG.error("Terminating Thread Pool");
+				LOG.debug(e);
+				LOG.info("Terminating Thread Pool");
 				executor.shutdown();
 			} catch (Exception e1) {
 				LOG.error(e);
