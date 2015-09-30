@@ -59,6 +59,8 @@ public class AutoscalingConfiguration implements Serializable {
 	
 	private Integer refreshShardsNumberAfterMin;
 
+	private IScalingOperationReportListener scalingOperationReportListener;
+
 	public String getStreamName() {
 		return streamName;
 	}
@@ -124,6 +126,10 @@ public class AutoscalingConfiguration implements Serializable {
 		this.refreshShardsNumberAfterMin = refreshShardsNumberAfterMin;
 	}
 
+	public IScalingOperationReportListener getScalingOperationReportListener() {
+		return scalingOperationReportListener;
+	}
+
 	public static AutoscalingConfiguration[] loadFromURL(String url)
 			throws IOException {
 		File configFile = null;
@@ -174,7 +180,6 @@ public class AutoscalingConfiguration implements Serializable {
 				} else {
 					//last fallback to a FS location
 					configFile = new File(url);
-					
 					if(!configFile.exists()) {						
 						throw new IOException("Unable to load local file from "
 								+ url);						

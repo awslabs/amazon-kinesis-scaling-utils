@@ -27,6 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.http.IdleConnectionReaper;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
@@ -35,7 +36,6 @@ import com.amazonaws.services.cloudwatch.model.Datapoint;
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.amazonaws.services.cloudwatch.model.Statistic;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.scaling.AlreadyOneShardException;
@@ -61,14 +61,10 @@ public class StreamMonitor implements Runnable {
 
 	private DateTime lastScaleDown = null;
 
-	private enum ScaleDirection {
-		UP, DOWN;
-	}
-
 	private StreamScaler scaler = null;
 
 	private Exception exception;
-
+	
 	/* incomplete constructor only for testing */
 	protected StreamMonitor(AutoscalingConfiguration config, StreamScaler scaler)
 			throws Exception {
@@ -94,6 +90,9 @@ public class StreamMonitor implements Runnable {
 
 	public void stop() {
 		this.keepRunning = false;
+		this.kinesisClient.shutdown();
+		this.cloudWatchClient.shutdown();
+        IdleConnectionReaper.shutdown(); //the idle-connection-reaper is causing a thread leak without an explicit shutdown
 		LOG.info(String.format("Signalling Monitor for Stream %s to Stop",
 				config.getStreamName()));
 	}
@@ -159,11 +158,10 @@ public class StreamMonitor implements Runnable {
 	/* method has bee lifted out of run() for unit testing purposes */
 	protected ScalingOperationReport processCloudwatchMetrics(
 			Map<StreamMetric, Map<Datapoint, Double>> metricsMap, StreamMetrics streamMaxCapacity,
-			int cwSampleDuration, String scaleUpByLabel,
-			String scaleDownByLabel, DateTime now) throws Exception {
+			int cwSampleDuration, DateTime now)  {
 
 		ScalingOperationReport report = null;
-		Map<StreamMetric, ScaleDirection> scaleDirectionPerMetric = new HashMap<StreamMetric, StreamMonitor.ScaleDirection>();
+		Map<StreamMetric, ScaleDirection> scaleDirectionPerMetric = new HashMap<StreamMetric, ScaleDirection>();
 
 		for (StreamMetric metric: metricsMap.keySet()) {
 
@@ -233,7 +231,7 @@ public class StreamMonitor implements Runnable {
 
 			scaleDirectionPerMetric.put(metric, scaleDirection);
 		}
-		
+
 		int scaleDownDirectionCount = 0;
 		int scaleUpDirectionCount = 0;
 		for (ScaleDirection scaleDirection : scaleDirectionPerMetric.values()) {
@@ -253,7 +251,7 @@ public class StreamMonitor implements Runnable {
 		} else if(scaleDownDirectionCount == scaleDirectionPerMetric.values().size()) {
 			aggregatedScaleDirection = ScaleDirection.DOWN;			
 		}
-		
+
 		LOG.info("Scale Directions: " + scaleDirectionPerMetric + ". Aggregated Scale Direction: " + ((aggregatedScaleDirection != null) ? aggregatedScaleDirection : "None"));
 
 		if(aggregatedScaleDirection == null) {
@@ -262,67 +260,76 @@ public class StreamMonitor implements Runnable {
 			LOG.debug("No Scaling Directive received");
 			return report;
 		}
-		
-		// if the metric stats indicate a scale up or down, then do the
-		// action
-		if (aggregatedScaleDirection.equals(ScaleDirection.UP)) {
-			// submit a scale up task
-			LOG.info(String
-					.format("Scale Up Stream %s by %s as %s has been above %s%% for %s Minutes",
-							this.config.getStreamName(), scaleUpByLabel,
-							this.config.getScaleOnOperation(), 
-							this.config.getScaleUp().getScaleThresholdPct(),
-							this.config.getScaleUp().getScaleAfterMins()));
 
-			if (this.config.getScaleUp().getScaleCount() != null) {
-				report = this.scaler.scaleUp(this.config.getStreamName(),
-						this.config.getScaleUp().getScaleCount(),
-						this.config.getMinShards(), this.config.getMaxShards());
-			} else {
-				report = this.scaler
-						.scaleUp(this.config.getStreamName(), new Double(
-								this.config.getScaleUp().getScalePct()) / 100,
-								this.config.getMinShards(), this.config
-								.getMaxShards());
-			}
-		} else if (aggregatedScaleDirection.equals(ScaleDirection.DOWN)) {
-			// check the cool down interval
-			if (lastScaleDown != null
-					&& now.minusMinutes(
-							this.config.getScaleDown().getCoolOffMins())
-							.isBefore(lastScaleDown)) {
+		try {
+			// if the metric stats indicate a scale up or down, then do the
+			// action
+			if (aggregatedScaleDirection.equals(ScaleDirection.UP)) {
+				// submit a scale up task
+				Integer scaleUpCount = this.config.getScaleUp().getScaleCount();
+
 				LOG.info(String
-						.format("Deferring Scale Down until Cool Off Period of %s Minutes has elapsed",
-								this.config.getScaleDown().getCoolOffMins()));
-			} else {
-				// submit a scale down
-				LOG.info(String
-						.format("Scale Down Stream %s by %s as %s has been below %s%% for %s Minutes",
-								this.config.getStreamName(), scaleDownByLabel,
-								config.getScaleOnOperation(), this.config
-								.getScaleDown().getScaleThresholdPct(),
-								this.config.getScaleDown().getScaleAfterMins()));
-				try {
-					if (this.config.getScaleDown().getScaleCount() != null) {
-						report = this.scaler.scaleDown(this.config.getStreamName(),
-								this.config.getScaleDown().getScaleCount(),
-								this.config.getMinShards(),
-								this.config.getMaxShards());
-					} else {
-						report = this.scaler
-								.scaleDown(this.config.getStreamName(),
-										new Double(this.config.getScaleDown()
-												.getScalePct()) / 100, this.config
-												.getMinShards(), this.config
-												.getMaxShards());
+						.format("Scale Up Stream %s by %s as %s has been above %s%% for %s Minutes",
+								this.config.getStreamName(), 
+								(scaleUpCount != null) ? scaleUpCount : this.config.getScaleUp().getScalePct() + "%",
+								this.config.getScaleOnOperation(), 
+								this.config.getScaleUp().getScaleThresholdPct(),
+								this.config.getScaleUp().getScaleAfterMins()));
+
+				if (scaleUpCount != null) {
+					report = this.scaler.scaleUp(this.config.getStreamName(),
+							scaleUpCount,
+							this.config.getMinShards(), this.config.getMaxShards());
+				} else {
+					report = this.scaler
+							.scaleUp(this.config.getStreamName(), new Double(
+									this.config.getScaleUp().getScalePct()) / 100,
+									this.config.getMinShards(), this.config
+									.getMaxShards());
+				}
+			} else if (aggregatedScaleDirection.equals(ScaleDirection.DOWN)) {
+				// check the cool down interval
+				if (lastScaleDown != null
+						&& now.minusMinutes(
+								this.config.getScaleDown().getCoolOffMins())
+								.isBefore(lastScaleDown)) {
+					LOG.info(String
+							.format("Deferring Scale Down until Cool Off Period of %s Minutes has elapsed",
+									this.config.getScaleDown().getCoolOffMins()));
+				} else {
+					// submit a scale down
+					Integer scaleDownCount = this.config.getScaleDown().getScaleCount();
+					LOG.info(String
+							.format("Scale Down Stream %s by %s as %s has been below %s%% for %s Minutes",
+									this.config.getStreamName(), 
+									(scaleDownCount != null) ? scaleDownCount : this.config.getScaleUp().getScalePct() + "%",
+									config.getScaleOnOperation(), this.config
+									.getScaleDown().getScaleThresholdPct(),
+									this.config.getScaleDown().getScaleAfterMins()));
+					try {
+						if (scaleDownCount != null) {
+							report = this.scaler.scaleDown(this.config.getStreamName(),
+									scaleDownCount,
+									this.config.getMinShards(),
+									this.config.getMaxShards());
+						} else {
+							report = this.scaler
+									.scaleDown(this.config.getStreamName(),
+											new Double(this.config.getScaleDown()
+													.getScalePct()) / 100, this.config
+													.getMinShards(), this.config
+													.getMaxShards());
+						}
+
+						lastScaleDown = new DateTime(System.currentTimeMillis());
+					} catch(AlreadyOneShardException aose) {
+						// do nothing - we're already at 1 shard
+						LOG.debug("Not Scaling Down - Already at Minimum of 1 Shard");
 					}
-
-					lastScaleDown = new DateTime(System.currentTimeMillis());
-				} catch(AlreadyOneShardException aose) {
-					// do nothing - we're already at 1 shard
-					LOG.debug("Not Scaling Down - Already at Minimum of 1 Shard");
 				}
 			}
+		} catch(Exception e) {
+			LOG.error(e);
 		}
 
 		return report;
@@ -342,24 +349,6 @@ public class StreamMonitor implements Runnable {
 		} catch (Exception e) {
 			this.exception = e;
 			return;
-		}
-
-		// configure log labels
-		String scaleUpByLabel = "";
-		String scaleDownByLabel = "";
-		if (this.config.getScaleUp().getScaleCount() != null) {
-			scaleUpByLabel = String.format("%s Shards", this.config
-					.getScaleUp().getScaleCount());
-		} else {
-			scaleUpByLabel = String.format("%s%%", this.config.getScaleUp()
-					.getScalePct());
-		}
-		if (this.config.getScaleDown().getScaleCount() != null) {
-			scaleDownByLabel = String.format("%s Shards", this.config
-					.getScaleDown().getScaleCount());
-		} else {
-			scaleDownByLabel = String.format("%s%%", this.config.getScaleDown()
-					.getScalePct());
 		}
 
 		int cwSampleDuration = Math.max(
@@ -424,7 +413,7 @@ public class StreamMonitor implements Runnable {
 
 				// process the aggregated set of Cloudwatch Datapoints
 				report = processCloudwatchMetrics(metricsMap, streamMaxCapacity,
-						cwSampleDuration, scaleUpByLabel, scaleDownByLabel, now);
+						cwSampleDuration, now);
 
 				if (report != null) {
 					// refresh the current max capacity after the
@@ -434,6 +423,9 @@ public class StreamMonitor implements Runnable {
 				}
 
 				if (report != null) {
+					if(this.config.getScalingOperationReportListener() != null) {
+						this.config.getScalingOperationReportListener().onReport(report);						
+					}
 					LOG.info(report.toString());
 					report = null;
 				}
@@ -453,7 +445,7 @@ public class StreamMonitor implements Runnable {
 					LOG.error(e);
 					break;
 				}
-			} while (keepRunning = true);
+			} while (keepRunning);
 
 			LOG.info(String.format(
 					"Stream Monitor for %s in %s Completed. Exiting.",
@@ -474,5 +466,9 @@ public class StreamMonitor implements Runnable {
 
 	protected void setLastScaleDown(DateTime setLastScaleDown) {
 		this.lastScaleDown = setLastScaleDown;
+	}
+	
+	AutoscalingConfiguration getConfig() {
+		return this.config;
 	}
 }
