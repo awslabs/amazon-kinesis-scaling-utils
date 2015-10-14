@@ -134,7 +134,7 @@ public class AutoscalingConfiguration implements Serializable {
 	}
 
 	public static AutoscalingConfiguration[] loadFromURL(String url)
-			throws IOException {
+			throws IOException, InvalidConfigurationException {
 		File configFile = null;
 
 		if (url.startsWith("s3://")) {
@@ -197,9 +197,41 @@ public class AutoscalingConfiguration implements Serializable {
 
 		// read the json config into an array of autoscaling
 		// configurations
-		AutoscalingConfiguration[] configuration = mapper.readValue(configFile,
-				AutoscalingConfiguration[].class);
+		AutoscalingConfiguration[] configuration;
+		try {
+			configuration = mapper.readValue(configFile,
+					AutoscalingConfiguration[].class);
+		} catch (Exception e) {
+			throw new InvalidConfigurationException(e);
+		}
+
+		// validate each of the configurations
+		for (AutoscalingConfiguration conf : configuration) {
+			conf.validate();
+		}
 
 		return configuration;
+	}
+
+	public void validate() throws InvalidConfigurationException {
+		if (this.streamName == null || this.streamName.equals("")) {
+			throw new InvalidConfigurationException(
+					"Stream Name must be specified");
+		}
+
+		if (this.scaleOnOperation == null) {
+			throw new InvalidConfigurationException(
+					"Scale On Operation must be one of PUT or GET");
+		}
+
+		if (this.scaleUp == null && this.scaleDown == null) {
+			throw new InvalidConfigurationException(
+					"Must provide at least one scale up or scale down configuration");
+		}
+
+		if (this.minShards > this.maxShards) {
+			throw new InvalidConfigurationException(
+					"Min Shard Count must be less than Max Shard Count");
+		}
 	}
 }

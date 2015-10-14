@@ -34,7 +34,8 @@ public class AutoscalingController implements Runnable {
 
 	public static final String CONFIG_URL_PARAM = "config-file-url";
 
-	private static final Log LOG = LogFactory.getLog(AutoscalingController.class);
+	private static final Log LOG = LogFactory
+			.getLog(AutoscalingController.class);
 
 	// configurations we're responsible for
 	private AutoscalingConfiguration[] config;
@@ -58,7 +59,8 @@ public class AutoscalingController implements Runnable {
 		this.config = config;
 	}
 
-	public static AutoscalingController getInstance() throws Exception {
+	public static AutoscalingController getInstance()
+			throws InvalidConfigurationException {
 		if (controller != null) {
 			return controller;
 		} else {
@@ -70,23 +72,26 @@ public class AutoscalingController implements Runnable {
 				try {
 					// read the json config into an array of autoscaling
 					// configurations
-					AutoscalingConfiguration[] config = AutoscalingConfiguration.loadFromURL(configPath);
+					AutoscalingConfiguration[] config = AutoscalingConfiguration
+							.loadFromURL(configPath);
 
 					controller = getInstance(config);
 				} catch (Exception e) {
 					LOG.error(e);
 				}
 			} else {
-				throw new Exception(String.format(
-						"Unable to instantiate AutoscalingController without System Property %s",
-						CONFIG_URL_PARAM));
+				throw new InvalidConfigurationException(
+						String.format(
+								"Unable to instantiate AutoscalingController without System Property %s",
+								CONFIG_URL_PARAM));
 			}
 
 			return controller;
 		}
 	}
 
-	public static AutoscalingController getInstance(AutoscalingConfiguration[] config) throws Exception {
+	public static AutoscalingController getInstance(
+			AutoscalingConfiguration[] config) throws Exception {
 		if (controller != null) {
 			return controller;
 		} else {
@@ -99,16 +104,17 @@ public class AutoscalingController implements Runnable {
 		}
 	}
 
-
 	public void stopAll() throws Exception {
 		for (Integer i : runningMonitors.keySet()) {
 			StreamMonitor monitor = runningMonitors.get(i);
-			LOG.debug("Stopping Stream Monitor: " + monitor.getConfig().getStreamName() + " ...");
+			LOG.debug("Stopping Stream Monitor: "
+					+ monitor.getConfig().getStreamName() + " ...");
 			monitor.stop();
 			// block until the Future returns that the Stream Monitor has
 			// stopped
 			monitorFutures.get(i).get();
-			LOG.debug("Stream Monitor: " + monitor.getConfig().getStreamName() + " stopped");
+			LOG.debug("Stream Monitor: " + monitor.getConfig().getStreamName()
+					+ " stopped");
 		}
 	}
 
@@ -119,9 +125,9 @@ public class AutoscalingController implements Runnable {
 			for (AutoscalingConfiguration c : this.config) {
 				StreamMonitor monitor;
 				try {
-					LOG.info(String.format(
-							"AutoscalingController creating Stream Monitor for Stream %s",
-							c.getStreamName()));
+					LOG.info(String
+							.format("AutoscalingController creating Stream Monitor for Stream %s",
+									c.getStreamName()));
 					monitor = new StreamMonitor(c, executor);
 					runningMonitors.put(i, monitor);
 					monitorFutures.put(i, executor.submit(monitor));
@@ -139,8 +145,8 @@ public class AutoscalingController implements Runnable {
 					} else {
 						if (monitorFutures.get(n).isDone()) {
 							if (runningMonitors.get(n).getException() != null) {
-								throw new InterruptedException(
-										runningMonitors.get(n).getException().getMessage());
+								throw new InterruptedException(runningMonitors
+										.get(n).getException().getMessage());
 							}
 						}
 					}
