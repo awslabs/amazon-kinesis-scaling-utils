@@ -199,7 +199,7 @@ public class StreamScaler {
 		int currentSize = StreamScalingUtils.getOpenShardCount(kinesisClient,
 				streamName);
 
-		if (currentSize == 1) {
+		if(currentSize == 1) {
 			throw new AlreadyOneShardException();
 		}
 

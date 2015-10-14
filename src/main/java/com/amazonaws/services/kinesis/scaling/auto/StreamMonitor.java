@@ -266,6 +266,9 @@ public class StreamMonitor implements Runnable {
 			aggregatedScaleDirection = ScaleDirection.DOWN;
 		}
 
+
+		LOG.info("Scale Directions: " + scaleDirectionPerMetric + ". Aggregated Scale Direction: " + ((aggregatedScaleDirection != null) ? aggregatedScaleDirection : "None"));
+
 		LOG.info("Scale Directions: "
 				+ scaleDirectionPerMetric
 				+ ". Aggregated Scale Direction: "
