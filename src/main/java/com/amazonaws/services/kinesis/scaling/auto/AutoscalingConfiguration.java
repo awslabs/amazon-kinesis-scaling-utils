@@ -45,7 +45,9 @@ public class AutoscalingConfiguration implements Serializable {
 
 	private static ObjectMapper mapper = new ObjectMapper();
 
-	private String streamName, region;
+	private String streamName;
+
+	private String region = "us-east-1";
 
 	private KinesisOperationType scaleOnOperation;
 
@@ -56,8 +58,10 @@ public class AutoscalingConfiguration implements Serializable {
 	private Integer minShards;
 
 	private Integer maxShards;
-	
-	private Integer refreshShardsNumberAfterMin;
+
+	private Integer refreshShardsNumberAfterMin = 10;
+
+	private IScalingOperationReportListener scalingOperationReportListener;
 
 	public String getStreamName() {
 		return streamName;
@@ -120,8 +124,13 @@ public class AutoscalingConfiguration implements Serializable {
 		return refreshShardsNumberAfterMin;
 	}
 
-	public void setRefreshShardsNumberAfterMin(Integer refreshShardsNumberAfterMin) {
+	public void setRefreshShardsNumberAfterMin(
+			Integer refreshShardsNumberAfterMin) {
 		this.refreshShardsNumberAfterMin = refreshShardsNumberAfterMin;
+	}
+
+	public IScalingOperationReportListener getScalingOperationReportListener() {
+		return scalingOperationReportListener;
 	}
 
 	public static AutoscalingConfiguration[] loadFromURL(String url)
@@ -172,12 +181,12 @@ public class AutoscalingConfiguration implements Serializable {
 									(url.startsWith("/") ? "" : "/") + url)
 									.toURI());
 				} else {
-					//last fallback to a FS location
+					// last fallback to a FS location
 					configFile = new File(url);
-					
-					if(!configFile.exists()) {						
+
+					if (!configFile.exists()) {
 						throw new IOException("Unable to load local file from "
-								+ url);						
+								+ url);
 					}
 				}
 			} catch (URISyntaxException e) {

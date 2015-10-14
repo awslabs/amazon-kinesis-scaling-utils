@@ -46,6 +46,7 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
  "scaleOnOperation":"String - the type of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
  "minShards":"Integer - the minimum number of Shards to maintain in the Stream at all times",
  "maxShards":"Integer - the maximum number of Shards to have in the Stream regardless of capacity used",
+ "refreshShardsNumberAfterMin":"Integer - minutes interval after which the Stream Monitor should refresh the Shard count on the stream, to accomodate manual scaling activities. If unset, defaults to 10 minutes"
  "scaleUp": {
      "scaleThresholdPct":Integer - at what threshold we should scale up,
      "scaleAfterMins":Integer - how many minutes above the scaleThresholdPct we should wait before scaling up,

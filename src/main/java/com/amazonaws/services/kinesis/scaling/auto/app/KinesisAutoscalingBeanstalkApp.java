@@ -34,6 +34,10 @@ public class KinesisAutoscalingBeanstalkApp implements ServletContextListener {
         // stop all stream monitors in the Autoscaling Controller by
         // interrupting its thread
         streamMonitorController.interrupt();
+		try {
+			streamMonitorController.join();
+		} catch (InterruptedException e) {
+		}
     }
 
     @Override
