@@ -229,7 +229,8 @@ public class AutoscalingConfiguration implements Serializable {
 					"Must provide at least one scale up or scale down configuration");
 		}
 
-		if (this.minShards > this.maxShards) {
+		if (this.minShards != null && this.maxShards != null
+				&& this.minShards > this.maxShards) {
 			throw new InvalidConfigurationException(
 					"Min Shard Count must be less than Max Shard Count");
 		}
