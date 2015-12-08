@@ -165,47 +165,43 @@ public class ScalingClient {
 
 		ScalingOperationReport report = null;
 
-		if (this.shardId != null) {
-
-		} else {
-			switch (this.scalingAction) {
-			case scaleUp:
-				switch (this.scaleBy) {
-				case count:
-					report = scaler.scaleUp(this.streamName, this.scaleCount,
-							this.minShards, this.maxShards);
-					break;
-				case pct:
-					report = scaler.scaleUp(this.streamName, this.scalePct,
-							this.minShards, this.maxShards);
-					break;
-				}
+		switch (this.scalingAction) {
+		case scaleUp:
+			switch (this.scaleBy) {
+			case count:
+				report = scaler.scaleUp(this.streamName, this.scaleCount,
+						this.minShards, this.maxShards);
 				break;
-			case scaleDown:
-				switch (this.scaleBy) {
-				case count:
-					report = scaler.scaleDown(this.streamName, this.scaleCount,
-							this.minShards, this.maxShards);
-					break;
-				case pct:
-					report = scaler.scaleDown(this.streamName, this.scalePct,
-							this.minShards, this.maxShards);
-					break;
-				}
+			case pct:
+				report = scaler.scaleUp(this.streamName, this.scalePct,
+						this.minShards, this.maxShards);
 				break;
-			case resize:
-				switch (this.scaleBy) {
-				case count:
-					report = scaler.resize(this.streamName, this.scaleCount,
-							this.minShards, this.maxShards);
-					break;
-				case pct:
-					throw new Exception("Cannot resize by a Percentage");
-				}
-				break;
-			case report:
-				report = scaler.reportFor(this.streamName, 0);
 			}
+			break;
+		case scaleDown:
+			switch (this.scaleBy) {
+			case count:
+				report = scaler.scaleDown(this.streamName, this.scaleCount,
+						this.minShards, this.maxShards);
+				break;
+			case pct:
+				report = scaler.scaleDown(this.streamName, this.scalePct,
+						this.minShards, this.maxShards);
+				break;
+			}
+			break;
+		case resize:
+			switch (this.scaleBy) {
+			case count:
+				report = scaler.resize(this.streamName, this.scaleCount,
+						this.minShards, this.maxShards);
+				break;
+			case pct:
+				throw new Exception("Cannot resize by a Percentage");
+			}
+			break;
+		case report:
+			report = scaler.reportFor(this.streamName, 0);
 		}
 
 		System.out.println("Scaling Operation Complete");
