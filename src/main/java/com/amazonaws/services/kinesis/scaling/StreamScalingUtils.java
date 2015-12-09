@@ -33,6 +33,7 @@ import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.model.DescribeStreamRequest;
 import com.amazonaws.services.kinesis.model.DescribeStreamResult;
 import com.amazonaws.services.kinesis.model.LimitExceededException;
+import com.amazonaws.services.kinesis.model.ResourceInUseException;
 import com.amazonaws.services.kinesis.model.Shard;
 import com.amazonaws.services.kinesis.model.StreamDescription;
 import com.amazonaws.services.kinesis.scaling.StreamScaler.SortOrder;
@@ -42,11 +43,17 @@ public class StreamScalingUtils {
 
 	public static final int MODIFY_RETRIES = 10;
 
+	// retry timeout set to 100ms as API's will potentially throttle > 10/sec
 	public static final int RETRY_TIMEOUT_MS = 100;
 
+	// rounding scale for BigInteger and BigDecimal comparisons
 	public static final int PCT_COMPARISON_SCALE = 10;
 
 	public static final RoundingMode ROUNDING_MODE = RoundingMode.HALF_DOWN;
+
+	private static interface KinesisOperation {
+		public Object run();
+	}
 
 	/**
 	 * Method to do a fuzzy comparison between two doubles, so that we can make
@@ -109,39 +116,99 @@ public class StreamScalingUtils {
 	 * @return
 	 */
 	protected static String getStreamStatus(AmazonKinesis kinesisClient,
-			String streamName) {
-		return kinesisClient.describeStream(streamName).getStreamDescription()
-				.getStreamStatus();
+			String streamName) throws Exception {
+		return describeStream(kinesisClient, streamName, null)
+				.getStreamDescription().getStreamStatus();
 	}
 
-	public static DescribeStreamResult safeDescribeStream(
-			AmazonKinesis kinesisClient, String streamName, String shardIdStart)
-			throws Exception {
-		DescribeStreamResult result = null;
-		boolean done = false;
-		int describeAttempts = 0;
-		do {
-			describeAttempts++;
-
-			try {
-				result = kinesisClient
+	public static DescribeStreamResult describeStream(
+			final AmazonKinesis kinesisClient, final String streamName,
+			final String shardIdStart) throws Exception {
+		KinesisOperation describe = new KinesisOperation() {
+			public Object run() {
+				DescribeStreamResult result = kinesisClient
 						.describeStream(new DescribeStreamRequest()
 								.withStreamName(streamName)
 								.withExclusiveStartShardId(shardIdStart));
-				done = true;
-			} catch (LimitExceededException e) {
-				Thread.sleep(new Double(Math.pow(2, describeAttempts)
-						* RETRY_TIMEOUT_MS).longValue());
+
+				return result;
 			}
-		} while (!done && describeAttempts < DESCRIBE_RETRIES);
+		};
+		return (DescribeStreamResult) doOperation(kinesisClient, describe,
+				streamName, DESCRIBE_RETRIES, false);
+
+	}
+
+	public static void splitShard(final AmazonKinesis kinesisClient,
+			final String streamName, final String shardId,
+			final BigInteger targetHash, final boolean waitForActive)
+			throws Exception {
+		KinesisOperation split = new KinesisOperation() {
+			public Object run() {
+				kinesisClient.splitShard(streamName, shardId,
+						targetHash.toString());
+
+				return null;
+			}
+		};
+		doOperation(kinesisClient, split, streamName, MODIFY_RETRIES,
+				waitForActive);
+	}
+
+	public static void mergeShards(final AmazonKinesis kinesisClient,
+			final String streamName, final ShardHashInfo lowerShard,
+			final ShardHashInfo higherShard, final boolean waitForActive)
+			throws Exception {
+		KinesisOperation merge = new KinesisOperation() {
+			public Object run() {
+				kinesisClient.mergeShards(streamName, lowerShard.getShardId(),
+						higherShard.getShardId());
+
+				return null;
+			}
+		};
+		doOperation(kinesisClient, merge, streamName, MODIFY_RETRIES,
+				waitForActive);
+	}
+
+	private static Object doOperation(AmazonKinesis kinesisClient,
+			KinesisOperation operation, String streamName, int retries,
+			boolean waitForActive) throws Exception {
+		boolean done = false;
+		int attempts = 0;
+		Object result = null;
+		do {
+			attempts++;
+			try {
+				result = operation.run();
+
+				if (waitForActive) {
+					waitForStreamStatus(kinesisClient, streamName, "ACTIVE");
+				}
+				done = true;
+			} catch (ResourceInUseException e) {
+				// thrown when the Shard is mutating - wait until we are able to
+				// do the modification or ResourceNotFoundException is thrown
+				Thread.sleep(1000);
+			} catch (LimitExceededException lee) {
+				// API Throttling
+				Thread.sleep(getTimeoutDuration(attempts));
+			}
+		} while (!done && attempts < retries);
 
 		if (!done) {
 			throw new Exception(String.format(
-					"Unable to Describe Stream %s after %s Retries",
-					streamName, DESCRIBE_RETRIES));
+					"Unable to Complete Kinesis Operation after %s Retries",
+					retries));
 		} else {
 			return result;
 		}
+	}
+
+	// calculate an exponential backoff based on the attempt count
+	private static final long getTimeoutDuration(int attemptCount) {
+		return new Double(Math.pow(2, attemptCount) * RETRY_TIMEOUT_MS)
+				.longValue();
 	}
 
 	private static final int compareShardsByStartHash(Shard o1, Shard o2) {
@@ -215,13 +282,16 @@ public class StreamScalingUtils {
 		List<Shard> allShards = new ArrayList<>();
 		String lastShardId = null;
 		do {
-			stream = safeDescribeStream(kinesisClient, streamName, lastShardId)
+			stream = describeStream(kinesisClient, streamName, lastShardId)
 					.getStreamDescription();
 			for (Shard shard : stream.getShards()) {
 				allShards.add(shard);
 				lastShardId = shard.getShardId();
 			}
-		} while (stream.getHasMoreShards());
+		} while (/* in some cases the describeStream call will return nothing */stream == null
+				|| stream.getShards() == null
+				|| stream.getShards().size() == 0
+				|| stream.getHasMoreShards());
 
 		// load all the open shards on the Stream and sort if required
 		for (Shard shard : allShards) {

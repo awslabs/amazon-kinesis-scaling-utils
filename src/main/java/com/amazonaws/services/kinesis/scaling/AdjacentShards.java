@@ -28,76 +28,60 @@ import com.amazonaws.services.kinesis.model.ResourceInUseException;
  * open shard, and it's lower and higher neighbours by partition hash value
  */
 public class AdjacentShards {
-    private String streamName;
+	private String streamName;
 
-    private ShardHashInfo lowerShard;
+	private ShardHashInfo lowerShard;
 
-    private ShardHashInfo higherShard;
+	private ShardHashInfo higherShard;
 
-    public AdjacentShards(String streamName, ShardHashInfo lower, ShardHashInfo higher)
-            throws Exception {
-        // ensure that the shards are adjacent
-        if (!new BigInteger(higher.getShard().getHashKeyRange().getStartingHashKey()).subtract(
-                new BigInteger(lower.getShard().getHashKeyRange().getEndingHashKey())).equals(
-                new BigInteger("1"))) {
-            throw new Exception("Shards are not Adjacent");
-        }
-        this.streamName = streamName;
-        this.lowerShard = lower;
-        this.higherShard = higher;
-    }
+	public AdjacentShards(String streamName, ShardHashInfo lower,
+			ShardHashInfo higher) throws Exception {
+		// ensure that the shards are adjacent
+		if (!new BigInteger(higher.getShard().getHashKeyRange()
+				.getStartingHashKey()).subtract(
+				new BigInteger(lower.getShard().getHashKeyRange()
+						.getEndingHashKey())).equals(new BigInteger("1"))) {
+			throw new Exception("Shards are not Adjacent");
+		}
+		this.streamName = streamName;
+		this.lowerShard = lower;
+		this.higherShard = higher;
+	}
 
-    protected ShardHashInfo getLowerShard() {
-        return lowerShard;
-    }
+	protected ShardHashInfo getLowerShard() {
+		return lowerShard;
+	}
 
-    protected ShardHashInfo getHigherShard() {
-        return higherShard;
-    }
+	protected ShardHashInfo getHigherShard() {
+		return higherShard;
+	}
 
-    /**
-     * Merge these two Shards and return the result Shard
-     * 
-     * @param kinesisClient
-     * @return
-     * @throws Exception
-     */
-    protected ShardHashInfo doMerge(AmazonKinesisClient kinesisClient) throws Exception {
-        boolean done = false;
-        int mergeAttempts = 0;
-        do {
-            mergeAttempts++;
-            try {
-                kinesisClient.mergeShards(streamName, this.lowerShard.getShardId(),
-                        this.higherShard.getShardId());
+	/**
+	 * Merge these two Shards and return the result Shard
+	 * 
+	 * @param kinesisClient
+	 * @return
+	 * @throws Exception
+	 */
+	protected ShardHashInfo doMerge(AmazonKinesisClient kinesisClient)
+			throws Exception {
+		StreamScalingUtils.mergeShards(kinesisClient, streamName,
+				this.lowerShard, this.higherShard, true);
 
-                StreamScalingUtils.waitForStreamStatus(kinesisClient, streamName, "ACTIVE");
-            } catch (ResourceInUseException e) {
-                // thrown when the Shard is mutating - wait until we are able to
-                // do the modification or ResourceNotFoundException is thrown
-                Thread.sleep(1000);
-            } catch (LimitExceededException lee) {
-                Thread.sleep(new Double(Math.pow(2, mergeAttempts)
-                        * StreamScalingUtils.RETRY_TIMEOUT_MS).longValue());
-            }
-            done = true;
-        } while (!done && mergeAttempts < StreamScalingUtils.MODIFY_RETRIES);
+		Map<String, ShardHashInfo> openShards = StreamScalingUtils
+				.getOpenShards(kinesisClient, streamName);
 
-        if (!done) {
-            throw new Exception(String.format("Unable to Merge Shards after %s Retries",
-                    StreamScalingUtils.MODIFY_RETRIES));
-        }
+		for (ShardHashInfo info : openShards.values()) {
+			if (lowerShard.getShardId().equals(
+					info.getShard().getParentShardId())
+					&& higherShard.getShardId().equals(
+							info.getShard().getAdjacentParentShardId())) {
+				return new ShardHashInfo(streamName, info.getShard());
+			}
+		}
 
-        Map<String, ShardHashInfo> openShards = StreamScalingUtils.getOpenShards(kinesisClient,
-                streamName);
-
-        for (ShardHashInfo info : openShards.values()) {
-            if (lowerShard.getShardId().equals(info.getShard().getParentShardId())
-                    && higherShard.getShardId().equals(info.getShard().getAdjacentParentShardId())) {
-                return new ShardHashInfo(streamName, info.getShard());
-            }
-        }
-
-        return null;
-    }
+		throw new Exception(String.format(
+				"Unable resolve new created Shard for parents %s and %s",
+				lowerShard.getShardId(), higherShard.getShardId()));
+	}
 }

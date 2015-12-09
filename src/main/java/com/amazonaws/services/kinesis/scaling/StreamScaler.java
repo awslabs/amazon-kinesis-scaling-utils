@@ -56,7 +56,7 @@ public class StreamScaler {
 
 	private final String AWSApplication = "KinesisScalingUtility";
 
-	private final String version = ".9.3.4";
+	private final String version = ".9.3.5";
 
 	private final NumberFormat pctFormat = NumberFormat.getPercentInstance();
 
@@ -199,7 +199,7 @@ public class StreamScaler {
 		int currentSize = StreamScalingUtils.getOpenShardCount(kinesisClient,
 				streamName);
 
-		if(currentSize == 1) {
+		if (currentSize == 1) {
 			throw new AlreadyOneShardException();
 		}
 
@@ -288,15 +288,16 @@ public class StreamScaler {
 				maxShards);
 	}
 
-	private void reportProgress(int shardsCompleted, int shardsRemaining,
-			long startTime) {
+	private void reportProgress(int shardsCompleted, int currentCount,
+			int shardsRemaining, long startTime) {
 		int shardsTotal = shardsCompleted + shardsRemaining;
 		double pctComplete = new Double(shardsCompleted)
 				/ new Double(shardsTotal);
 		double estRemaining = (((System.currentTimeMillis() - startTime) / 1000) / pctComplete);
 		LOG.info(String
-				.format("Shard Modification %s Complete, %s In Process, Approx %s Seconds Remaining",
+				.format("Shard Modification %s Complete, (%s Pending, %s Completed). Current Size %s Shards with Approx %s Seconds Remaining",
 						pctFormat.format(pctComplete), shardsRemaining,
+						shardsCompleted, currentCount,
 						new Double(estRemaining).intValue()));
 	}
 
@@ -338,12 +339,16 @@ public class StreamScaler {
 			Stack<ShardHashInfo> shardStack, Integer minCount, Integer maxCount)
 			throws Exception {
 		boolean checkMinMax = minCount != null || maxCount != null;
+		String lastShardLower = null;
+		String lastShardHigher = null;
 
+		// seed the current shard count from the working stack
+		int currentCount = shardStack.size();
+
+		// we'll run iteratively until the shard stack is emptied or we reach
+		// one of the caps
 		do {
 			if (checkMinMax) {
-				int currentCount = StreamScalingUtils.getOpenShardCount(
-						this.kinesisClient, streamName);
-
 				// stop scaling if we've reached the min or max count
 				boolean stopOnCap = false;
 				String message = null;
@@ -367,7 +372,8 @@ public class StreamScaler {
 
 			// report progress every shard completed
 			if (shardsCompleted > 0) {
-				reportProgress(shardsCompleted, shardStack.size(), startTime);
+				reportProgress(shardsCompleted, currentCount,
+						shardStack.size(), startTime);
 			}
 
 			// once the stack is emptied, return a report of the hash space
@@ -377,21 +383,35 @@ public class StreamScaler {
 			}
 
 			ShardHashInfo lowerShard = shardStack.pop();
+			if (lowerShard != null) {
+				lastShardLower = lowerShard.getShardId();
+			} else {
+				throw new Exception(String.format(
+						"Null ShardHashInfo retrieved after processing %s",
+						lastShardLower));
+			}
 
+			// first check is if the bottom shard is smaller or larger than our
+			// target width
 			if (StreamScalingUtils.softCompare(lowerShard.getPctWidth(),
 					targetPct) < 0) {
 				if (shardStack.empty()) {
-					// our last shard is smaller than the target size, but
+					// our current shard is smaller than the target size, but
 					// there's nothing else to do
 					return reportFor(streamName, operationsMade);
 				} else {
 					// get the next higher shard
 					ShardHashInfo higherShard = shardStack.pop();
 
+					if (higherShard != null) {
+						lastShardHigher = higherShard.getShardId();
+					}
+
 					if (StreamScalingUtils.softCompare(lowerShard.getPctWidth()
 							+ higherShard.getPctWidth(), targetPct) > 0) {
-						// The two lowest shards are larger than the target
-						// size, so split the upper at the target offset and
+						// The two lowest shards together are larger than the
+						// target size, so split the upper at the target offset
+						// and
 						// merge the lower of the two new shards to the lowest
 						// shard
 						AdjacentShards splitUpper = higherShard.doSplit(
@@ -414,6 +434,9 @@ public class StreamScaler {
 								lowerMerged.getShardId(),
 								pctFormat.format(lowerMerged.getPctWidth())));
 						shardsCompleted++;
+
+						// count of shards is unchanged in this case as we've
+						// just rebalanced, so current count is not updated
 					} else {
 						// The lower and upper shards together are smaller than
 						// the target size, so merge the two shards together
@@ -421,8 +444,10 @@ public class StreamScaler {
 								streamName, lowerShard, higherShard)
 								.doMerge(kinesisClient);
 						shardsCompleted++;
+						currentCount--;
 
-						// put it back on the stack - it may still be too small
+						// put the new shard back on the stack - it may still be
+						// too small relative to the target
 						shardStack.push(lowerMerged);
 					}
 				}
@@ -448,6 +473,7 @@ public class StreamScaler {
 				// push the higher of the two splits back onto the stack
 				shardStack.push(splitLower.getHigherShard());
 				shardsCompleted++;
+				currentCount++;
 			}
 		} while (shardStack.size() > 0 || !shardStack.empty());
 

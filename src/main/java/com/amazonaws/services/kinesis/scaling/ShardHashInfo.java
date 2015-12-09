@@ -23,8 +23,6 @@ import java.text.NumberFormat;
 import java.util.Map;
 
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
-import com.amazonaws.services.kinesis.model.LimitExceededException;
-import com.amazonaws.services.kinesis.model.ResourceInUseException;
 import com.amazonaws.services.kinesis.model.Shard;
 
 /**
@@ -75,7 +73,7 @@ public class ShardHashInfo {
 		return getWidth(new BigInteger(endHash), new BigInteger(startHash));
 	}
 
-	public static Double getPctOfKeyspace(BigInteger hashWidth) {				
+	public static Double getPctOfKeyspace(BigInteger hashWidth) {
 		return new BigDecimal(hashWidth).divide(new BigDecimal(maxHash),
 				StreamScalingUtils.PCT_COMPARISON_SCALE,
 				StreamScalingUtils.ROUNDING_MODE).doubleValue();
@@ -136,44 +134,16 @@ public class ShardHashInfo {
 	 */
 	public AdjacentShards doSplit(AmazonKinesisClient kinesisClient,
 			double targetPct) throws Exception {
-		boolean done = false;
-		int splitAttempts = 0;
 		BigInteger targetHash = getHashAtPctOffset(targetPct);
 
-		do {
-			splitAttempts++;
-
-			try {
-				kinesisClient.splitShard(this.streamName,
-						this.shard.getShardId(), targetHash.toString());
-
-				StreamScalingUtils.waitForStreamStatus(kinesisClient,
-						this.streamName, "ACTIVE");
-
-				done = true;
-			} catch (ResourceInUseException e) {
-				// thrown when the Shard is mutating - wait until we are able to
-				// do the modification or ResourceNotFoundException is thrown
-				Thread.sleep(1000);
-			} catch (LimitExceededException lee) {
-				if (!lee.getMessage().matches(".*exceed the shard limit.*")) {
-					Thread.sleep(new Double(Math.pow(2, splitAttempts)
-							* StreamScalingUtils.RETRY_TIMEOUT_MS).longValue());
-				} else {
-					throw lee;
-				}
-			}
-		} while (!done && splitAttempts < StreamScalingUtils.MODIFY_RETRIES);
-
-		if (!done) {
-			throw new Exception(String.format(
-					"Unable to Split Shards after %s Retries",
-					StreamScalingUtils.MODIFY_RETRIES));
-		}
+		// split the shard
+		StreamScalingUtils.splitShard(kinesisClient, this.streamName,
+				this.getShardId(), targetHash, true);
 
 		ShardHashInfo lowerShard = null;
 		ShardHashInfo higherShard = null;
 
+		// resolve the newly created shards from this one
 		Map<String, ShardHashInfo> openShards = StreamScalingUtils
 				.getOpenShards(kinesisClient, streamName);
 
