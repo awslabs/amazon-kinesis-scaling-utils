@@ -52,7 +52,7 @@ public class StreamScalingUtils {
 	public static final RoundingMode ROUNDING_MODE = RoundingMode.HALF_DOWN;
 
 	private static interface KinesisOperation {
-		public Object run();
+		public Object run(AmazonKinesis client);
 	}
 
 	/**
@@ -125,8 +125,8 @@ public class StreamScalingUtils {
 			final AmazonKinesis kinesisClient, final String streamName,
 			final String shardIdStart) throws Exception {
 		KinesisOperation describe = new KinesisOperation() {
-			public Object run() {
-				DescribeStreamResult result = kinesisClient
+			public Object run(AmazonKinesis client) {
+				DescribeStreamResult result = client
 						.describeStream(new DescribeStreamRequest()
 								.withStreamName(streamName)
 								.withExclusiveStartShardId(shardIdStart));
@@ -144,9 +144,8 @@ public class StreamScalingUtils {
 			final BigInteger targetHash, final boolean waitForActive)
 			throws Exception {
 		KinesisOperation split = new KinesisOperation() {
-			public Object run() {
-				kinesisClient.splitShard(streamName, shardId,
-						targetHash.toString());
+			public Object run(AmazonKinesis client) {
+				client.splitShard(streamName, shardId, targetHash.toString());
 
 				return null;
 			}
@@ -160,8 +159,8 @@ public class StreamScalingUtils {
 			final ShardHashInfo higherShard, final boolean waitForActive)
 			throws Exception {
 		KinesisOperation merge = new KinesisOperation() {
-			public Object run() {
-				kinesisClient.mergeShards(streamName, lowerShard.getShardId(),
+			public Object run(AmazonKinesis client) {
+				client.mergeShards(streamName, lowerShard.getShardId(),
 						higherShard.getShardId());
 
 				return null;
@@ -180,7 +179,7 @@ public class StreamScalingUtils {
 		do {
 			attempts++;
 			try {
-				result = operation.run();
+				result = operation.run(kinesisClient);
 
 				if (waitForActive) {
 					waitForStreamStatus(kinesisClient, streamName, "ACTIVE");
