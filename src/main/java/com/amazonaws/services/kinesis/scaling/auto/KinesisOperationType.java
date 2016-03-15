@@ -31,7 +31,7 @@ public enum KinesisOperationType {
 
 		@Override
 		public List<String> getMetricsToFetch() {
-			List<String> metricsToFetch = new ArrayList<String>();
+			List<String> metricsToFetch = new ArrayList<>();
 			metricsToFetch.add("PutRecord.Bytes");
 			metricsToFetch.add("PutRecords.Bytes");
 			metricsToFetch.add("PutRecord.Success");
@@ -50,7 +50,7 @@ public enum KinesisOperationType {
 
 		@Override
 		public List<String> getMetricsToFetch() {
-			List<String> metricsToFetch = new ArrayList<String>();
+			List<String> metricsToFetch = new ArrayList<>();
 			metricsToFetch.add("GetRecords.Bytes");
 			metricsToFetch.add("GetRecords.Success");
 			return metricsToFetch;			
