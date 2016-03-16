@@ -46,21 +46,17 @@ public class ShardHashInfo {
 
 	private final NumberFormat pctFormat = NumberFormat.getPercentInstance();
 
-	private static final BigInteger maxHash = new BigInteger(
-			"340282366920938463463374607431768211455");
+	private static final BigInteger maxHash = new BigInteger("340282366920938463463374607431768211455");
 
 	public ShardHashInfo(String streamName, Shard shard) {
 		// prevent constructing a null object
 		if (streamName == null || shard == null) {
-			throw new ExceptionInInitializerError(
-					"Stream Name & Shard Required");
+			throw new ExceptionInInitializerError("Stream Name & Shard Required");
 		}
 		this.shard = shard;
 		this.streamName = streamName;
-		this.endHash = new BigInteger(shard.getHashKeyRange()
-				.getEndingHashKey());
-		this.startHash = new BigInteger(shard.getHashKeyRange()
-				.getStartingHashKey());
+		this.endHash = new BigInteger(shard.getHashKeyRange().getEndingHashKey());
+		this.startHash = new BigInteger(shard.getHashKeyRange().getStartingHashKey());
 		this.hashWidth = getWidth(this.startHash, this.endHash);
 		this.pctOfKeyspace = getPctOfKeyspace(this.hashWidth);
 	}
@@ -74,8 +70,7 @@ public class ShardHashInfo {
 	}
 
 	public static Double getPctOfKeyspace(BigInteger hashWidth) {
-		return new BigDecimal(hashWidth).divide(new BigDecimal(maxHash),
-				StreamScalingUtils.PCT_COMPARISON_SCALE,
+		return new BigDecimal(hashWidth).divide(new BigDecimal(maxHash), StreamScalingUtils.PCT_COMPARISON_SCALE,
 				StreamScalingUtils.ROUNDING_MODE).doubleValue();
 	}
 
@@ -108,8 +103,7 @@ public class ShardHashInfo {
 	}
 
 	protected BigInteger getHashAtPctOffset(double pct) {
-		return this.startHash.add(new BigDecimal(maxHash).multiply(
-				BigDecimal.valueOf(pct)).toBigInteger());
+		return this.startHash.add(new BigDecimal(maxHash).multiply(BigDecimal.valueOf(pct)).toBigInteger());
 	}
 
 	protected boolean isFirstShard() {
@@ -132,40 +126,34 @@ public class ShardHashInfo {
 	 * @return
 	 * @throws Exception
 	 */
-	public AdjacentShards doSplit(AmazonKinesisClient kinesisClient,
-			double targetPct) throws Exception {
+	public AdjacentShards doSplit(AmazonKinesisClient kinesisClient, double targetPct, String currentHighestShardId)
+			throws Exception {
 		BigInteger targetHash = getHashAtPctOffset(targetPct);
 
 		// split the shard
-		StreamScalingUtils.splitShard(kinesisClient, this.streamName,
-				this.getShardId(), targetHash, true);
+		StreamScalingUtils.splitShard(kinesisClient, this.streamName, this.getShardId(), targetHash, true);
 
 		ShardHashInfo lowerShard = null;
 		ShardHashInfo higherShard = null;
 
 		// resolve the newly created shards from this one
-		Map<String, ShardHashInfo> openShards = StreamScalingUtils
-				.getOpenShards(kinesisClient, streamName);
+		Map<String, ShardHashInfo> openShards = StreamScalingUtils.getOpenShards(kinesisClient, streamName,
+				currentHighestShardId);
 
 		for (ShardHashInfo info : openShards.values()) {
 			if (!info.getShard().getShardId().equals(this.shard.getShardId())) {
-				if (info.getShard().getHashKeyRange().getStartingHashKey()
-						.equals(targetHash.toString())) {
-					higherShard = new ShardHashInfo(this.streamName,
-							info.getShard());
+				if (info.getShard().getHashKeyRange().getStartingHashKey().equals(targetHash.toString())) {
+					higherShard = new ShardHashInfo(this.streamName, info.getShard());
 					break;
 				} else {
-					lowerShard = new ShardHashInfo(this.streamName,
-							info.getShard());
+					lowerShard = new ShardHashInfo(this.streamName, info.getShard());
 				}
 			}
 		}
 
 		if (lowerShard == null || higherShard == null) {
-			throw new Exception(
-					String.format(
-							"Unable to resolve high/low shard mapping for Target Hash Value %s",
-							targetHash.toString()));
+			throw new Exception(String.format("Unable to resolve high/low shard mapping for Target Hash Value %s",
+					targetHash.toString()));
 		}
 
 		return new AdjacentShards(streamName, lowerShard, higherShard);
@@ -173,11 +161,8 @@ public class ShardHashInfo {
 
 	@Override
 	public String toString() {
-		return String.format(
-				"Shard %s - Start: %s, End: %s, Keyspace Width: %s (%s)\n",
-				this.getShardId(), this.getStartHash().toString(), this
-						.getEndHash().toString(), this.getHashWidth()
-						.toString(), new DecimalFormat("#0.000%").format(this
-						.getPctWidth()));
+		return String.format("Shard %s - Start: %s, End: %s, Keyspace Width: %s (%s)\n", this.getShardId(),
+				this.getStartHash().toString(), this.getEndHash().toString(), this.getHashWidth().toString(),
+				new DecimalFormat("#0.000%").format(this.getPctWidth()));
 	}
 }

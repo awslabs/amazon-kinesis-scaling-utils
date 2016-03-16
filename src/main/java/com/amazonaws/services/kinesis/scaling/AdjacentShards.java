@@ -34,13 +34,11 @@ public class AdjacentShards {
 
 	private ShardHashInfo higherShard;
 
-	public AdjacentShards(String streamName, ShardHashInfo lower,
-			ShardHashInfo higher) throws Exception {
+	public AdjacentShards(String streamName, ShardHashInfo lower, ShardHashInfo higher) throws Exception {
 		// ensure that the shards are adjacent
-		if (!new BigInteger(higher.getShard().getHashKeyRange()
-				.getStartingHashKey()).subtract(
-				new BigInteger(lower.getShard().getHashKeyRange()
-						.getEndingHashKey())).equals(new BigInteger("1"))) {
+		if (!new BigInteger(higher.getShard().getHashKeyRange().getStartingHashKey())
+				.subtract(new BigInteger(lower.getShard().getHashKeyRange().getEndingHashKey()))
+				.equals(new BigInteger("1"))) {
 			throw new Exception("Shards are not Adjacent");
 		}
 		this.streamName = streamName;
@@ -63,25 +61,20 @@ public class AdjacentShards {
 	 * @return
 	 * @throws Exception
 	 */
-	protected ShardHashInfo doMerge(AmazonKinesisClient kinesisClient)
-			throws Exception {
-		StreamScalingUtils.mergeShards(kinesisClient, streamName,
-				this.lowerShard, this.higherShard, true);
+	protected ShardHashInfo doMerge(AmazonKinesisClient kinesisClient, String currentHighestShardId) throws Exception {
+		StreamScalingUtils.mergeShards(kinesisClient, streamName, this.lowerShard, this.higherShard, true);
 
-		Map<String, ShardHashInfo> openShards = StreamScalingUtils
-				.getOpenShards(kinesisClient, streamName);
+		Map<String, ShardHashInfo> openShards = StreamScalingUtils.getOpenShards(kinesisClient, streamName,
+				currentHighestShardId);
 
 		for (ShardHashInfo info : openShards.values()) {
-			if (lowerShard.getShardId().equals(
-					info.getShard().getParentShardId())
-					&& higherShard.getShardId().equals(
-							info.getShard().getAdjacentParentShardId())) {
+			if (lowerShard.getShardId().equals(info.getShard().getParentShardId())
+					&& higherShard.getShardId().equals(info.getShard().getAdjacentParentShardId())) {
 				return new ShardHashInfo(streamName, info.getShard());
 			}
 		}
 
-		throw new Exception(String.format(
-				"Unable resolve new created Shard for parents %s and %s",
+		throw new Exception(String.format("Unable resolve new created Shard for parents %s and %s",
 				lowerShard.getShardId(), higherShard.getShardId()));
 	}
 }

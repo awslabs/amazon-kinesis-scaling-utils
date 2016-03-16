@@ -68,13 +68,11 @@ public class StreamScalingUtils {
 	public static int softCompare(double a, double b) {
 		// allow variation by 1 order of magnitude greater than the comparison
 		// scale
-		final BigDecimal acceptedVariation = BigDecimal.valueOf(1d).divide(
-				BigDecimal.valueOf(10d).pow(PCT_COMPARISON_SCALE - 1));
+		final BigDecimal acceptedVariation = BigDecimal.valueOf(1d)
+				.divide(BigDecimal.valueOf(10d).pow(PCT_COMPARISON_SCALE - 1));
 
-		BigDecimal first = new BigDecimal(a).setScale(PCT_COMPARISON_SCALE,
-				ROUNDING_MODE);
-		BigDecimal second = new BigDecimal(b).setScale(PCT_COMPARISON_SCALE,
-				ROUNDING_MODE);
+		BigDecimal first = new BigDecimal(a).setScale(PCT_COMPARISON_SCALE, ROUNDING_MODE);
+		BigDecimal second = new BigDecimal(b).setScale(PCT_COMPARISON_SCALE, ROUNDING_MODE);
 
 		BigDecimal variation = first.subtract(second).abs();
 
@@ -95,14 +93,19 @@ public class StreamScalingUtils {
 	 * @param status
 	 * @throws Exception
 	 */
-	public static void waitForStreamStatus(AmazonKinesis kinesisClient,
-			String streamName, String status) throws Exception {
+	public static void waitForStreamStatus(AmazonKinesis kinesisClient, String streamName, String status)
+			throws Exception {
 		boolean ok = false;
 		String streamStatus;
+		// stream mutation takes around 30 seconds, so we'll start with 20 as
+		// a timeout
+		int waitTimeout = 20000;
 		do {
 			streamStatus = getStreamStatus(kinesisClient, streamName);
 			if (!streamStatus.equals(status)) {
-				Thread.sleep(1000);
+				Thread.sleep(waitTimeout);
+				// reduce the wait timeout from the initial wait time
+				waitTimeout = 1000;
 			} else {
 				ok = true;
 			}
@@ -115,34 +118,26 @@ public class StreamScalingUtils {
 	 * @param streamName
 	 * @return
 	 */
-	protected static String getStreamStatus(AmazonKinesis kinesisClient,
-			String streamName) throws Exception {
-		return describeStream(kinesisClient, streamName, null)
-				.getStreamDescription().getStreamStatus();
+	protected static String getStreamStatus(AmazonKinesis kinesisClient, String streamName) throws Exception {
+		return describeStream(kinesisClient, streamName, null).getStreamDescription().getStreamStatus();
 	}
 
-	public static DescribeStreamResult describeStream(
-			final AmazonKinesis kinesisClient, final String streamName,
+	public static DescribeStreamResult describeStream(final AmazonKinesis kinesisClient, final String streamName,
 			final String shardIdStart) throws Exception {
 		KinesisOperation describe = new KinesisOperation() {
 			public Object run(AmazonKinesis client) {
-				DescribeStreamResult result = client
-						.describeStream(new DescribeStreamRequest()
-								.withStreamName(streamName)
-								.withExclusiveStartShardId(shardIdStart));
+				DescribeStreamResult result = client.describeStream(
+						new DescribeStreamRequest().withStreamName(streamName).withExclusiveStartShardId(shardIdStart));
 
 				return result;
 			}
 		};
-		return (DescribeStreamResult) doOperation(kinesisClient, describe,
-				streamName, DESCRIBE_RETRIES, false);
+		return (DescribeStreamResult) doOperation(kinesisClient, describe, streamName, DESCRIBE_RETRIES, false);
 
 	}
 
-	public static void splitShard(final AmazonKinesis kinesisClient,
-			final String streamName, final String shardId,
-			final BigInteger targetHash, final boolean waitForActive)
-			throws Exception {
+	public static void splitShard(final AmazonKinesis kinesisClient, final String streamName, final String shardId,
+			final BigInteger targetHash, final boolean waitForActive) throws Exception {
 		KinesisOperation split = new KinesisOperation() {
 			public Object run(AmazonKinesis client) {
 				client.splitShard(streamName, shardId, targetHash.toString());
@@ -150,29 +145,24 @@ public class StreamScalingUtils {
 				return null;
 			}
 		};
-		doOperation(kinesisClient, split, streamName, MODIFY_RETRIES,
-				waitForActive);
+		doOperation(kinesisClient, split, streamName, MODIFY_RETRIES, waitForActive);
 	}
 
-	public static void mergeShards(final AmazonKinesis kinesisClient,
-			final String streamName, final ShardHashInfo lowerShard,
-			final ShardHashInfo higherShard, final boolean waitForActive)
-			throws Exception {
+	public static void mergeShards(final AmazonKinesis kinesisClient, final String streamName,
+			final ShardHashInfo lowerShard, final ShardHashInfo higherShard, final boolean waitForActive)
+					throws Exception {
 		KinesisOperation merge = new KinesisOperation() {
 			public Object run(AmazonKinesis client) {
-				client.mergeShards(streamName, lowerShard.getShardId(),
-						higherShard.getShardId());
+				client.mergeShards(streamName, lowerShard.getShardId(), higherShard.getShardId());
 
 				return null;
 			}
 		};
-		doOperation(kinesisClient, merge, streamName, MODIFY_RETRIES,
-				waitForActive);
+		doOperation(kinesisClient, merge, streamName, MODIFY_RETRIES, waitForActive);
 	}
 
-	private static Object doOperation(AmazonKinesis kinesisClient,
-			KinesisOperation operation, String streamName, int retries,
-			boolean waitForActive) throws Exception {
+	private static Object doOperation(AmazonKinesis kinesisClient, KinesisOperation operation, String streamName,
+			int retries, boolean waitForActive) throws Exception {
 		boolean done = false;
 		int attempts = 0;
 		Object result = null;
@@ -196,9 +186,7 @@ public class StreamScalingUtils {
 		} while (!done && attempts < retries);
 
 		if (!done) {
-			throw new Exception(String.format(
-					"Unable to Complete Kinesis Operation after %s Retries",
-					retries));
+			throw new Exception(String.format("Unable to Complete Kinesis Operation after %s Retries", retries));
 		} else {
 			return result;
 		}
@@ -206,20 +194,16 @@ public class StreamScalingUtils {
 
 	// calculate an exponential backoff based on the attempt count
 	private static final long getTimeoutDuration(int attemptCount) {
-		return new Double(Math.pow(2, attemptCount) * RETRY_TIMEOUT_MS)
-				.longValue();
+		return new Double(Math.pow(2, attemptCount) * RETRY_TIMEOUT_MS).longValue();
 	}
 
 	private static final int compareShardsByStartHash(Shard o1, Shard o2) {
 		return new BigInteger(o1.getHashKeyRange().getStartingHashKey())
-				.compareTo(new BigInteger(o2.getHashKeyRange()
-						.getStartingHashKey()));
+				.compareTo(new BigInteger(o2.getHashKeyRange().getStartingHashKey()));
 	}
 
-	public static int getOpenShardCount(AmazonKinesisClient kinesisClient,
-			String streamName) throws Exception {
-		return getOpenShards(kinesisClient, streamName, SortOrder.NONE)
-				.keySet().size();
+	public static int getOpenShardCount(AmazonKinesisClient kinesisClient, String streamName) throws Exception {
+		return getOpenShards(kinesisClient, streamName, SortOrder.NONE, null).keySet().size();
 	}
 
 	/**
@@ -228,75 +212,45 @@ public class StreamScalingUtils {
 	 * @param streamName
 	 * @return A Map of only Open Shards indexed by the Shard ID
 	 */
-	public static Map<String, ShardHashInfo> getOpenShards(
-			AmazonKinesisClient kinesisClient, String streamName)
+	public static Map<String, ShardHashInfo> getOpenShards(AmazonKinesisClient kinesisClient, String streamName,
+			String lastShardId) throws Exception {
+		return getOpenShards(kinesisClient, streamName, SortOrder.ASCENDING, lastShardId);
+	}
+
+	public static ShardHashInfo getOpenShard(AmazonKinesisClient kinesisClient, String streamName, String shardId)
 			throws Exception {
-		return getOpenShards(kinesisClient, streamName, SortOrder.ASCENDING);
-	}
+		StreamDescription stream = describeStream(kinesisClient, streamName, shardId).getStreamDescription();
+		Shard s = stream.getShards().get(0);
 
-	public static ShardHashInfo getOpenShard(AmazonKinesisClient kinesisClient,
-			String streamName, String shardId) throws Exception {
-
-		ShardHashInfo s = getOpenShards(kinesisClient, streamName,
-				Arrays.asList(shardId)).values().iterator().next();
-
-		if (s == null) {
-			throw new Exception(String.format(
-					"Shard %s not found in Stream %s", shardId, streamName));
+		if (!s.getShardId().equals(shardId)) {
+			throw new Exception(String.format("Shard %s not found in Stream %s", shardId, streamName));
 		} else {
-			return s;
+			return new ShardHashInfo(streamName, s);
 		}
 	}
 
-	public static Map<String, ShardHashInfo> getOpenShards(
-			AmazonKinesisClient kinesisClient, String streamName,
-			List<String> shardIds) throws Exception {
-		Map<String, ShardHashInfo> openShards = getOpenShards(kinesisClient,
-				streamName);
-		Map<String, ShardHashInfo> out = new LinkedHashMap<>();
-
-		for (String s : openShards.keySet()) {
-			for (String t : shardIds) {
-				if (s.equals(t)) {
-					out.put(s, openShards.get(s));
-				}
-			}
-		}
-
-		if (out.size() != shardIds.size()) {
-			throw new Exception("One or more requested Shards are not Open");
-		}
-
-		return out;
-	}
-
-	public static Map<String, ShardHashInfo> getOpenShards(
-			AmazonKinesisClient kinesisClient, String streamName,
-			SortOrder sortOrder) throws Exception {
+	public static Map<String, ShardHashInfo> getOpenShards(AmazonKinesisClient kinesisClient, String streamName,
+			SortOrder sortOrder, String lastShardId) throws Exception {
 		StreamDescription stream = null;
 		Collection<String> openShardNames = new ArrayList<String>();
 		Map<String, ShardHashInfo> shardMap = new LinkedHashMap<>();
 
 		// load all shards on the stream
 		List<Shard> allShards = new ArrayList<>();
-		String lastShardId = null;
+
 		do {
-			stream = describeStream(kinesisClient, streamName, lastShardId)
-					.getStreamDescription();
+			stream = describeStream(kinesisClient, streamName, lastShardId).getStreamDescription();
 			for (Shard shard : stream.getShards()) {
 				allShards.add(shard);
 				lastShardId = shard.getShardId();
 			}
 		} while (/* in some cases the describeStream call will return nothing */stream == null
-				|| stream.getShards() == null
-				|| stream.getShards().size() == 0
-				|| stream.getHasMoreShards());
+				|| stream.getShards() == null || stream.getShards().size() == 0 || stream.getHasMoreShards());
 
 		// load all the open shards on the Stream and sort if required
 		for (Shard shard : allShards) {
 			openShardNames.add(shard.getShardId());
-			shardMap.put(shard.getShardId(), new ShardHashInfo(streamName,
-					shard));
+			shardMap.put(shard.getShardId(), new ShardHashInfo(streamName, shard));
 
 			// remove this Shard's parents from the set of active shards - they
 			// are now closed and cannot be modified or written to
