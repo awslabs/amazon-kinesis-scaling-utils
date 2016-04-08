@@ -22,45 +22,54 @@ package com.amazonaws.services.kinesis.scaling.auto;
  */
 public class ScalingConfig {
 
-    private Integer scaleAfterMins, coolOffMins, scaleCount, scaleThresholdPct, scalePct;
+	private Integer scaleAfterMins, coolOffMins, scaleCount, scaleThresholdPct, scalePct;
+	private String notificationARN;
 
-    public Integer getScaleThresholdPct() {
-        return scaleThresholdPct;
-    }
+	public Integer getScaleThresholdPct() {
+		return scaleThresholdPct;
+	}
 
-    public void setScaleThresholdPct(int scaleThresholdPct) {
-        this.scaleThresholdPct = scaleThresholdPct;
-    }
+	public void setScaleThresholdPct(int scaleThresholdPct) {
+		this.scaleThresholdPct = scaleThresholdPct;
+	}
 
-    public Integer getScaleAfterMins() {
-        return scaleAfterMins;
-    }
+	public Integer getScaleAfterMins() {
+		return scaleAfterMins;
+	}
 
-    public void setScaleAfterMins(int scaleAfterMins) {
-        this.scaleAfterMins = scaleAfterMins;
-    }
+	public void setScaleAfterMins(int scaleAfterMins) {
+		this.scaleAfterMins = scaleAfterMins;
+	}
 
-    public Integer getCoolOffMins() {
-        return coolOffMins;
-    }
+	public Integer getCoolOffMins() {
+		return coolOffMins;
+	}
 
-    public void setCoolOffMins(int coolOffMins) {
-        this.coolOffMins = coolOffMins;
-    }
+	public void setCoolOffMins(int coolOffMins) {
+		this.coolOffMins = coolOffMins;
+	}
 
-    public Integer getScaleCount() {
-        return scaleCount;
-    }
+	public Integer getScaleCount() {
+		return scaleCount;
+	}
 
-    public void setScaleCount(int scaleCount) {
-        this.scaleCount = scaleCount;
-    }
+	public void setScaleCount(int scaleCount) {
+		this.scaleCount = scaleCount;
+	}
 
-    public Integer getScalePct() {
-        return scalePct;
-    }
+	public Integer getScalePct() {
+		return scalePct;
+	}
 
-    public void setScalePct(int scalePct) {
-        this.scalePct = scalePct;
-    }
+	public void setScalePct(int scalePct) {
+		this.scalePct = scalePct;
+	}
+
+	public String getNotificationARN() {
+		return notificationARN;
+	}
+
+	public void setNotificationARN(String notificationARN) {
+		this.notificationARN = notificationARN;
+	}
 }

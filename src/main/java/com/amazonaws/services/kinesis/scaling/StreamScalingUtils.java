@@ -20,7 +20,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -37,6 +36,7 @@ import com.amazonaws.services.kinesis.model.ResourceInUseException;
 import com.amazonaws.services.kinesis.model.Shard;
 import com.amazonaws.services.kinesis.model.StreamDescription;
 import com.amazonaws.services.kinesis.scaling.StreamScaler.SortOrder;
+import com.amazonaws.services.sns.AmazonSNSClient;
 
 public class StreamScalingUtils {
 	public static final int DESCRIBE_RETRIES = 10;
@@ -296,5 +296,10 @@ public class StreamScalingUtils {
 		}
 
 		return shardMap;
+	}
+
+	public static void sendNotification(AmazonSNSClient snsClient, String notificationARN, String subject,
+			String message) {
+		snsClient.publish(notificationARN, message, subject);
 	}
 }
