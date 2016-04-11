@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.amazonaws</groupId>
 	<artifactId>kinesis-scaling-utils</artifactId>
-	<version>.9.4.0</version>
+	<version>.9.4.1</version>
 	<properties>
 		<sdk-version>1.10.39</sdk-version>
 	</properties>
@@ -39,7 +39,7 @@
 				<artifactId>maven-assembly-plugin</artifactId>
 				<version>2.1</version>
 				<configuration>
-					<finalName>KinesisScalingUtils.jar</finalName>
+					<finalName>KinesisScalingUtils-${version}</finalName>
 					<descriptors>
 						<descriptor>assembly.xml</descriptor>
 					</descriptors>
@@ -69,7 +69,8 @@
 				<configuration>
 					<warSourceDirectory>src/main/WebContent</warSourceDirectory>
 					<failOnMissingWebXml>true</failOnMissingWebXml>
-					<warName>KinesisAutoscaling</warName>
+					<warName>KinesisAutoscaling-${version}</warName>
+					<recompressZippedFiles>true</recompressZippedFiles>
 				</configuration>
 			</plugin>
 			<plugin>

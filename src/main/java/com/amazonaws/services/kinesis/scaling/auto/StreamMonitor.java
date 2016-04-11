@@ -280,7 +280,7 @@ public class StreamMonitor implements Runnable {
 				// send SNS notifications
 				if (this.config.getScaleUp().getNotificationARN() != null) {
 					StreamScalingUtils.sendNotification(this.snsClient, this.config.getScaleUp().getNotificationARN(),
-							"Kinesis Autoscaling - Scale Up", report.toString());
+							"Kinesis Autoscaling - Scale Up", report.asJson());
 				}
 			} else if (aggregatedScaleDirection.equals(ScaleDirection.DOWN)) {
 				// check the cool down interval
@@ -315,7 +315,7 @@ public class StreamMonitor implements Runnable {
 						if (this.config.getScaleDown().getNotificationARN() != null) {
 							StreamScalingUtils.sendNotification(this.snsClient,
 									this.config.getScaleDown().getNotificationARN(), "Kinesis Autoscaling - Scale Down",
-									report.toString());
+									report.asJson());
 						}
 					} catch (AlreadyOneShardException aose) {
 						// do nothing - we're already at 1 shard

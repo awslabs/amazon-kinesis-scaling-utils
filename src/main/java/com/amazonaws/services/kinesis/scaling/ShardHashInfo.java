@@ -24,6 +24,8 @@ import java.util.Map;
 
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.model.Shard;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * Immutable transfer object containing enhanced metadata about Shards in a
@@ -32,12 +34,17 @@ import com.amazonaws.services.kinesis.model.Shard;
 public class ShardHashInfo {
 	private String streamName;
 
+	@JsonProperty
 	private BigInteger startHash;
 
+	@JsonProperty
 	private BigInteger endHash;
 
+	@JsonProperty
 	private BigInteger hashWidth;
 
+	@JsonProperty
+	@JsonSerialize(using = PercentDoubleSerialiser.class)
 	private Double pctOfKeyspace;
 
 	private Boolean matchesTargetResize;
@@ -74,6 +81,7 @@ public class ShardHashInfo {
 				StreamScalingUtils.ROUNDING_MODE).doubleValue();
 	}
 
+	@JsonProperty("shardID")
 	protected String getShardId() {
 		return this.shard.getShardId();
 	}

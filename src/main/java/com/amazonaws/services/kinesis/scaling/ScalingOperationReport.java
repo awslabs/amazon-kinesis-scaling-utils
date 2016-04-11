@@ -18,47 +18,59 @@ package com.amazonaws.services.kinesis.scaling;
 
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
 /**
  * Transfer Object for the output of a Scaling Operation
  */
 public class ScalingOperationReport {
-    private Map<String, ShardHashInfo> layout;
+	private Map<String, ShardHashInfo> layout;
 
-    private int operationsMade;
+	private int operationsMade;
 
-    public ScalingOperationReport(Map<String, ShardHashInfo> report) {
-        this(report, 0);
-    }
+	private ObjectMapper mapper = new ObjectMapper();
 
-    public ScalingOperationReport(Map<String, ShardHashInfo> report, int operationsMade) {
-        this.layout = report;
-        this.operationsMade = operationsMade;
-    }
+	public ScalingOperationReport(Map<String, ShardHashInfo> report) {
+		this(report, 0);
+	}
 
-    public Map<String, ShardHashInfo> getLayout() {
-        return layout;
-    }
+	public ScalingOperationReport(Map<String, ShardHashInfo> report, int operationsMade) {
+		this.layout = report;
+		this.operationsMade = operationsMade;
 
-    public int getOperationsMade() {
-        return operationsMade;
-    }
+		mapper.enable(SerializationFeature.WRITE_BIGDECIMAL_AS_PLAIN);
+	}
 
-    /**
-     * Generate a reader friendly report of the Shard topology
-     * 
-     * @param info The Map of
-     *        {@link com.amazonaws.services.kinesis.scaling.ShardHashInfo}
-     *        objects indexed by Shard ID to report
-     * @return A String value useful for printing or logging
-     */
-    @Override
-    public String toString() {
-        StringBuffer sb = new StringBuffer();
+	public Map<String, ShardHashInfo> getLayout() {
+		return layout;
+	}
 
-        for (ShardHashInfo v : layout.values()) {
-            sb.append(v.toString());
-        }
+	public int getOperationsMade() {
+		return operationsMade;
+	}
 
-        return sb.substring(0, sb.length() - 1);
-    }
+	public String asJson() throws Exception {
+		return mapper.writeValueAsString(layout);
+	}
+
+	/**
+	 * Generate a reader friendly report of the Shard topology
+	 * 
+	 * @param info
+	 *            The Map of
+	 *            {@link com.amazonaws.services.kinesis.scaling.ShardHashInfo}
+	 *            objects indexed by Shard ID to report
+	 * @return A String value useful for printing or logging
+	 */
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+
+		for (ShardHashInfo v : layout.values()) {
+			sb.append(v.toString());
+		}
+
+		return sb.substring(0, sb.length() - 1);
+	}
 }
