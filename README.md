@@ -9,7 +9,7 @@ You can also deploy the Web Archive to a Java Application Server, and allow Scal
 
 You can manually run the Scaling Utility from the command line by calling the ScalingClient with the following syntax.
 ```
-java -cp KinesisScalingUtils.jar-complete.jar -Dstream-name=MyStream -Dscaling-action=scaleUp -Dcount=10 -Dregion=eu-west-1 ScalingClient
+java -cp KinesisScalingUtils-complete.jar -Dstream-name=MyStream -Dscaling-action=scaleUp -Dcount=10 -Dregion=eu-west-1 ScalingClient
 
 Options: 
 stream-name - The name of the Stream to be scaled
