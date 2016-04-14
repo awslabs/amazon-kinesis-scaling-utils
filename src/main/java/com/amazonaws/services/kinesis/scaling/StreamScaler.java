@@ -156,7 +156,7 @@ public class StreamScaler {
 	public ScalingOperationReport scaleDown(String streamName, int byShardCount, Integer minShards, Integer maxShards)
 			throws Exception {
 		if (byShardCount <= 0) {
-			throw new Exception("Shard Count must be a positive number");
+			throw new Exception(streamName + ": Shard Count must be a positive number");
 		}
 
 		int currentSize = StreamScalingUtils.getOpenShardCount(kinesisClient, streamName);
@@ -182,7 +182,7 @@ public class StreamScaler {
 			throws Exception {
 		double scalePct = byPct;
 		if (scalePct < 0)
-			throw new Exception("Scaling Percent should be a positive number");
+			throw new Exception(streamName + ": Scaling Percent should be a positive number");
 
 		int currentSize = StreamScalingUtils.getOpenShardCount(kinesisClient, streamName);
 
@@ -213,7 +213,7 @@ public class StreamScaler {
 	public ScalingOperationReport scaleUp(String streamName, double byPct, Integer minShards, Integer maxShards)
 			throws Exception {
 		if (byPct < 0)
-			throw new Exception("Scaling Percent should be a positive number");
+			throw new Exception(streamName + ": Scaling Percent should be a positive number");
 		int currentSize = StreamScalingUtils.getOpenShardCount(kinesisClient, streamName);
 
 		int newSize = new Double(Math.ceil(currentSize + (currentSize * byPct))).intValue();
@@ -254,7 +254,7 @@ public class StreamScaler {
 	private ScalingOperationReport doResize(String streamName, int targetShardCount, Integer minShards,
 			Integer maxShards) throws Exception {
 		if (!(targetShardCount > 0)) {
-			throw new Exception("Cannot resize to 0 or negative Shard Count");
+			throw new Exception(streamName + ": Cannot resize to 0 or negative Shard Count");
 		}
 		int operationsMade = 0;
 		final int currentShards = StreamScalingUtils.getOpenShardCount(kinesisClient, streamName);
@@ -266,13 +266,13 @@ public class StreamScaler {
 				minShards, maxShards);
 	}
 
-	private void reportProgress(int shardsCompleted, int currentCount, int shardsRemaining, long startTime) {
+	private void reportProgress(String streamName, int shardsCompleted, int currentCount, int shardsRemaining, long startTime) {
 		int shardsTotal = shardsCompleted + shardsRemaining;
 		double pctComplete = new Double(shardsCompleted) / new Double(shardsTotal);
 		double estRemaining = (((System.currentTimeMillis() - startTime) / 1000) / pctComplete);
 		LOG.info(String.format(
-				"Shard Modification %s Complete, (%s Pending, %s Completed). Current Size %s Shards with Approx %s Seconds Remaining",
-				pctFormat.format(pctComplete), shardsRemaining, shardsCompleted, currentCount,
+				"%s: Shard Modification %s Complete, (%s Pending, %s Completed). Current Size %s Shards with Approx %s Seconds Remaining",
+				streamName, pctFormat.format(pctComplete), shardsRemaining, shardsCompleted, currentCount,
 				new Double(estRemaining).intValue()));
 	}
 
@@ -321,10 +321,10 @@ public class StreamScaler {
 				String message = null;
 				if (minCount != null && currentCount == minCount && targetShards <= minCount) {
 					stopOnCap = true;
-					message = String.format("Minimum Shard Count of %s Reached", minCount);
+					message = String.format("%s: Minimum Shard Count of %s Reached", streamName, minCount);
 				}
 				if (maxCount != null && currentCount == maxCount && targetShards >= maxCount) {
-					message = String.format("Maximum Shard Count of %s Reached", maxCount);
+					message = String.format("%s: Maximum Shard Count of %s Reached", streamName, maxCount);
 					stopOnCap = true;
 				}
 				if (stopOnCap) {
@@ -335,7 +335,7 @@ public class StreamScaler {
 
 			// report progress every shard completed
 			if (shardsCompleted > 0) {
-				reportProgress(shardsCompleted, currentCount, shardStack.size(), startTime);
+				reportProgress(streamName, shardsCompleted, currentCount, shardStack.size(), startTime);
 			}
 
 			// once the stack is emptied, return a report of the hash space
@@ -348,7 +348,7 @@ public class StreamScaler {
 			if (lowerShard != null) {
 				lastShardLower = lowerShard.getShardId();
 			} else {
-				throw new Exception(String.format("Null ShardHashInfo retrieved after processing %s", lastShardLower));
+				throw new Exception(String.format("%s: Null ShardHashInfo retrieved after processing %s", streamName, lastShardLower));
 			}
 
 			// first check is if the bottom shard is smaller or larger than our
