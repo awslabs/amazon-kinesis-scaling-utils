@@ -203,8 +203,8 @@ public class StreamMonitor implements Runnable {
 				lowSamples += cwSampleDuration - metrics.size();
 			}
 
-			LOG.info(String.format(metric + ": Stream Used Capacity %.2f%% (%,.0f " + metric + " of %d)",
-					latestPct * 100, latestMax, streamMaxCapacity.get(metric)));
+			LOG.info(String.format(metric + ": Stream %s Used Capacity %.2f%% (%,.0f " + metric + " of %d)",
+					config.getStreamName(), latestPct * 100, latestMax, streamMaxCapacity.get(metric)));
 
 			// check how many samples we have in the last period, and
 			// flag the appropriate action
@@ -286,8 +286,8 @@ public class StreamMonitor implements Runnable {
 				// check the cool down interval
 				if (lastScaleDown != null
 						&& now.minusMinutes(this.config.getScaleDown().getCoolOffMins()).isBefore(lastScaleDown)) {
-					LOG.info(String.format("Deferring Scale Down until Cool Off Period of %s Minutes has elapsed",
-							this.config.getScaleDown().getCoolOffMins()));
+					LOG.info(String.format("Stream %s: Deferring Scale Down until Cool Off Period of %s Minutes has elapsed",
+							this.config.getStreamName(), this.config.getScaleDown().getCoolOffMins()));
 				} else {
 					// submit a scale down
 
@@ -319,12 +319,12 @@ public class StreamMonitor implements Runnable {
 						}
 					} catch (AlreadyOneShardException aose) {
 						// do nothing - we're already at 1 shard
-						LOG.info("Not Scaling Down - Already at Minimum of 1 Shard");
+						LOG.info(String.format("Stream %s: Not Scaling Down - Already at Minimum of 1 Shard" , this.config.getStreamName()));
 					}
 				}
 			}
 		} catch (Exception e) {
-			LOG.error(e);
+			LOG.error("Failed to process stream " + this.config.getStreamName(), e);
 		}
 
 		return report;
