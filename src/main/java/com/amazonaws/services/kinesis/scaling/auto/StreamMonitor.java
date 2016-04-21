@@ -53,8 +53,6 @@ public class StreamMonitor implements Runnable {
 
 	private AmazonSNSClient snsClient;
 
-	public static final int TIMEOUT_SECONDS = 45;
-
 	public static final int CLOUDWATCH_PERIOD = 60;
 
 	private AutoscalingConfiguration config;
@@ -296,7 +294,7 @@ public class StreamMonitor implements Runnable {
 							.format("Requesting Scale Down of Stream %s by %s as %s has been below %s%% for %s Minutes",
 									this.config.getStreamName(),
 									(scaleDownCount != null) ? scaleDownCount
-											: this.config.getScaleUp().getScalePct() + "%",
+											: this.config.getScaleDown().getScalePct() + "%",
 									config.getScaleOnOperation(), this.config.getScaleDown().getScaleThresholdPct(),
 									this.config.getScaleDown().getScaleAfterMins()));
 					try {
@@ -427,7 +425,7 @@ public class StreamMonitor implements Runnable {
 
 				try {
 					LOG.debug("Sleep");
-					Thread.sleep(TIMEOUT_SECONDS * 1000);
+					Thread.sleep(this.config.getCheckInterval() * 1000);
 				} catch (InterruptedException e) {
 					LOG.error(e);
 					break;

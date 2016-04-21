@@ -63,6 +63,8 @@ public class AutoscalingConfiguration implements Serializable {
 
 	private IScalingOperationReportListener scalingOperationReportListener;
 
+	private Integer checkInterval = 45;
+
 	public String getStreamName() {
 		return streamName;
 	}
@@ -131,6 +133,14 @@ public class AutoscalingConfiguration implements Serializable {
 
 	public IScalingOperationReportListener getScalingOperationReportListener() {
 		return scalingOperationReportListener;
+	}
+
+	public Integer getCheckInterval() {
+		return checkInterval;
+	}
+
+	public void setCheckInterval(Integer checkInterval) {
+		this.checkInterval = checkInterval;
 	}
 
 	public static AutoscalingConfiguration[] loadFromURL(String url)
