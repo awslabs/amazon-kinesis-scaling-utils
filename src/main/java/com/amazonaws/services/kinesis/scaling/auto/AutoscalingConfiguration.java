@@ -23,6 +23,7 @@ import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -63,6 +64,7 @@ public class AutoscalingConfiguration implements Serializable {
 
 	private IScalingOperationReportListener scalingOperationReportListener;
 
+	@JsonIgnoreProperties
 	private Integer checkInterval = 45;
 
 	public String getStreamName() {
