@@ -190,7 +190,7 @@ public class StreamScaler {
 			throw new AlreadyOneShardException();
 		}
 
-		int newSize = Math.max(new Double(Math.ceil(currentSize - (currentSize * scalePct))).intValue(), 1);
+		int newSize = Math.max(new Double(Math.ceil(currentSize - Math.max(currentSize * scalePct, 1))).intValue(), 1);
 
 		if (newSize > 0) {
 			return doResize(streamName, newSize, minShards, maxShards);

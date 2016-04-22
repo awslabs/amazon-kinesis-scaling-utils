@@ -23,6 +23,7 @@ import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -62,6 +63,9 @@ public class AutoscalingConfiguration implements Serializable {
 	private Integer refreshShardsNumberAfterMin = 10;
 
 	private IScalingOperationReportListener scalingOperationReportListener;
+
+	@JsonIgnoreProperties
+	private Integer checkInterval = 45;
 
 	public String getStreamName() {
 		return streamName;
@@ -131,6 +135,14 @@ public class AutoscalingConfiguration implements Serializable {
 
 	public IScalingOperationReportListener getScalingOperationReportListener() {
 		return scalingOperationReportListener;
+	}
+
+	public Integer getCheckInterval() {
+		return checkInterval;
+	}
+
+	public void setCheckInterval(Integer checkInterval) {
+		this.checkInterval = checkInterval;
 	}
 
 	public static AutoscalingConfiguration[] loadFromURL(String url)
