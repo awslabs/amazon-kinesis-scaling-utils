@@ -21,7 +21,7 @@ import java.util.Map;
 
 public class StreamMetrics {
 
-	private final Map<StreamMetric, Integer> metrics = new HashMap<StreamMetric, Integer>();
+	private final Map<StreamMetric, Integer> metrics = new HashMap<>();
 
 	
 	public int put(StreamMetric m, int value) {

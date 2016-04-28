@@ -232,7 +232,7 @@ public class StreamScalingUtils {
 	public static Map<String, ShardHashInfo> getOpenShards(AmazonKinesisClient kinesisClient, String streamName,
 			SortOrder sortOrder, String lastShardId) throws Exception {
 		StreamDescription stream = null;
-		Collection<String> openShardNames = new ArrayList<String>();
+		Collection<String> openShardNames = new ArrayList<>();
 		Map<String, ShardHashInfo> shardMap = new LinkedHashMap<>();
 
 		// load all shards on the stream
@@ -265,7 +265,7 @@ public class StreamScalingUtils {
 		}
 
 		// create a List of Open shards for sorting
-		List<Shard> sortShards = new ArrayList<Shard>();
+		List<Shard> sortShards = new ArrayList<>();
 		for (String s : openShardNames) {
 			// paranoid null check in case we get a null map entry
 			if (s != null) {

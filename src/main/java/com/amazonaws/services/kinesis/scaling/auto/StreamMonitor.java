@@ -148,7 +148,7 @@ public class StreamMonitor implements Runnable {
 			StreamMetrics streamMaxCapacity, int cwSampleDuration, DateTime now) {
 
 		ScalingOperationReport report = null;
-		Map<StreamMetric, ScaleDirection> scaleDirectionPerMetric = new HashMap<StreamMetric, ScaleDirection>();
+		Map<StreamMetric, ScaleDirection> scaleDirectionPerMetric = new HashMap<>();
 
 		for (StreamMetric metric : metricsMap.keySet()) {
 
@@ -358,7 +358,7 @@ public class StreamMonitor implements Runnable {
 				// fetch only the last N minutes metrics
 				DateTime metricStartTime = metricEndTime.minusMinutes(cwSampleDuration);
 
-				Map<StreamMetric, Map<Datapoint, Double>> metricsMap = new HashMap<StreamMetric, Map<Datapoint, Double>>();
+				Map<StreamMetric, Map<Datapoint, Double>> metricsMap = new HashMap<>();
 				for (StreamMetric m : StreamMetric.values()) {
 					metricsMap.put(m, new HashMap<Datapoint, Double>());
 				}
