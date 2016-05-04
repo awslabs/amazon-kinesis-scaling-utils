@@ -246,9 +246,10 @@ public class StreamScaler {
 				.toString();
 	}
 
-	public ScalingOperationReport reportFor(String streamName, int operationsMade) throws Exception {
+	public ScalingOperationReport reportFor(String streamName, int operationsMade, ScaleDirection scaleDirection)
+			throws Exception {
 		return new ScalingOperationReport(StreamScalingUtils.getOpenShards(kinesisClient, streamName, (String) null),
-				operationsMade);
+				operationsMade, scaleDirection);
 	}
 
 	private ScalingOperationReport doResize(String streamName, int targetShardCount, Integer minShards,
@@ -266,7 +267,8 @@ public class StreamScaler {
 				minShards, maxShards);
 	}
 
-	private void reportProgress(String streamName, int shardsCompleted, int currentCount, int shardsRemaining, long startTime) {
+	private void reportProgress(String streamName, int shardsCompleted, int currentCount, int shardsRemaining,
+			long startTime) {
 		int shardsTotal = shardsCompleted + shardsRemaining;
 		double pctComplete = new Double(shardsCompleted) / new Double(shardsTotal);
 		double estRemaining = (((System.currentTimeMillis() - startTime) / 1000) / pctComplete);
@@ -308,6 +310,7 @@ public class StreamScaler {
 		boolean checkMinMax = minCount != null || maxCount != null;
 		String lastShardLower = null;
 		String lastShardHigher = null;
+		ScaleDirection scaleDirection = originalShardCount >= targetShards ? ScaleDirection.DOWN : ScaleDirection.UP;
 
 		// seed the current shard count from the working stack
 		int currentCount = shardStack.size();
@@ -329,7 +332,7 @@ public class StreamScaler {
 				}
 				if (stopOnCap) {
 					LOG.info(message);
-					return reportFor(streamName, operationsMade);
+					return reportFor(streamName, operationsMade, scaleDirection);
 				}
 			}
 
@@ -341,14 +344,15 @@ public class StreamScaler {
 			// once the stack is emptied, return a report of the hash space
 			// allocation
 			if (shardStack.empty()) {
-				return reportFor(streamName, operationsMade);
+				return reportFor(streamName, operationsMade, scaleDirection);
 			}
 
 			ShardHashInfo lowerShard = shardStack.pop();
 			if (lowerShard != null) {
 				lastShardLower = lowerShard.getShardId();
 			} else {
-				throw new Exception(String.format("%s: Null ShardHashInfo retrieved after processing %s", streamName, lastShardLower));
+				throw new Exception(String.format("%s: Null ShardHashInfo retrieved after processing %s", streamName,
+						lastShardLower));
 			}
 
 			// first check is if the bottom shard is smaller or larger than our
@@ -357,7 +361,7 @@ public class StreamScaler {
 				if (shardStack.empty()) {
 					// our current shard is smaller than the target size, but
 					// there's nothing else to do
-					return reportFor(streamName, operationsMade);
+					return reportFor(streamName, operationsMade, scaleDirection);
 				} else {
 					// get the next higher shard
 					ShardHashInfo higherShard = shardStack.pop();
@@ -428,7 +432,7 @@ public class StreamScaler {
 			}
 		} while (shardStack.size() > 0 || !shardStack.empty());
 
-		return reportFor(streamName, operationsMade);
+		return reportFor(streamName, operationsMade, scaleDirection);
 	}
 
 	private ScalingOperationReport scaleStream(String streamName, int originalShardCount, int targetShards,

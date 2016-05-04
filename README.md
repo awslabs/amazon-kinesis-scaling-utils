@@ -43,7 +43,7 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
 ```
 {"streamName":"String - name of the Stream to be Monitored",
  "region":"String - a Valid AWS Region Code, such as us-east-1 or eu-west-1",
- "scaleOnOperation":"String - the type of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
+ "scaleOnOperation":"List<String> - the types of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
  "minShards":"Integer - the minimum number of Shards to maintain in the Stream at all times",
  "maxShards":"Integer - the maximum number of Shards to have in the Stream regardless of capacity used",
  "refreshShardsNumberAfterMin":"Integer - minutes interval after which the Stream Monitor should refresh the Shard count on the stream, to accomodate manual scaling activities. If unset, defaults to 10 minutes"
@@ -66,3 +66,14 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
 ```
 
 once you've built the Autoscaling configuration required, save it to an HTTP file server or to Amazon S3. Then, access your Elastic Beanstalk application, and select 'Configuration' from the left hand Navigation Menu. Then select the 'Software Configuration' panel, and add a new configuration item called 'config-file-url' that points to the URL of the configuration file. Acceptable formats are 'http://path to file' or 's3://bucket/path to file'. Save the configuration, and then check the application logs for correct operation.
+
+## Autoscaling Behaviour ##
+
+In version .9.5.0, Autoscaling added the ability to scale on the basis of PUT ___and___ GET utilisation. This change means that you carefully have to consider your actual utilisation of each metric prior to configuring autoscaling with both metrics. For information on how the AutoScaling module will react with both metrics, consider the following table:
+
+| | | PUT | | |
+| :-- | :-- | :--: | :--: | :--: |
+| | __Range__ | Below | In | Above |
+|__GET__ | Below | Down | Down | Up |
+| | In | Down | Do Nothing | Up |
+| | Above | Up | Up | Up

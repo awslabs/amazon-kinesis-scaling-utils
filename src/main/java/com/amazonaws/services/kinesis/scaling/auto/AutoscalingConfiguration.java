@@ -22,8 +22,10 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,6 +35,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.transfer.Download;
 import com.amazonaws.services.s3.transfer.TransferManager;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -41,8 +45,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 @SuppressWarnings("serial")
 public class AutoscalingConfiguration implements Serializable {
-	private static final Log LOG = LogFactory
-			.getLog(AutoscalingConfiguration.class);
+	private static final Log LOG = LogFactory.getLog(AutoscalingConfiguration.class);
 
 	private static ObjectMapper mapper = new ObjectMapper();
 
@@ -50,7 +53,7 @@ public class AutoscalingConfiguration implements Serializable {
 
 	private String region = "us-east-1";
 
-	private KinesisOperationType scaleOnOperation;
+	private List<KinesisOperationType> scaleOnOperations;
 
 	private ScalingConfig scaleUp;
 
@@ -83,13 +86,12 @@ public class AutoscalingConfiguration implements Serializable {
 		this.region = region;
 	}
 
-	public KinesisOperationType getScaleOnOperation() {
-		return scaleOnOperation;
+	public List<KinesisOperationType> getScaleOnOperations() {
+		return scaleOnOperations;
 	}
 
-	public void setScaleOnOperation(KinesisOperationType scaleOnOperation)
-			throws Exception {
-		this.scaleOnOperation = scaleOnOperation;
+	public void setScaleOnOperation(List<KinesisOperationType> scaleOnOperations) {
+		this.scaleOnOperations = scaleOnOperations;
 	}
 
 	public ScalingConfig getScaleUp() {
@@ -128,8 +130,7 @@ public class AutoscalingConfiguration implements Serializable {
 		return refreshShardsNumberAfterMin;
 	}
 
-	public void setRefreshShardsNumberAfterMin(
-			Integer refreshShardsNumberAfterMin) {
+	public void setRefreshShardsNumberAfterMin(Integer refreshShardsNumberAfterMin) {
 		this.refreshShardsNumberAfterMin = refreshShardsNumberAfterMin;
 	}
 
@@ -145,22 +146,19 @@ public class AutoscalingConfiguration implements Serializable {
 		this.checkInterval = checkInterval;
 	}
 
-	public static AutoscalingConfiguration[] loadFromURL(String url)
-			throws IOException, InvalidConfigurationException {
+	public static AutoscalingConfiguration[] loadFromURL(String url) throws IOException, InvalidConfigurationException {
 		File configFile = null;
 
 		if (url.startsWith("s3://")) {
 			// download the configuration from S3
-			AmazonS3 s3Client = new AmazonS3Client(
-					new DefaultAWSCredentialsProviderChain());
+			AmazonS3 s3Client = new AmazonS3Client(new DefaultAWSCredentialsProviderChain());
 
 			TransferManager tm = new TransferManager(s3Client);
 
 			// parse the config path to get the bucket name and prefix
 			final String s3ProtoRegex = "s3:\\/\\/";
 			String bucket = url.replaceAll(s3ProtoRegex, "").split("/")[0];
-			String prefix = url.replaceAll(
-					String.format("%s%s\\/", s3ProtoRegex, bucket), "");
+			String prefix = url.replaceAll(String.format("%s%s\\/", s3ProtoRegex, bucket), "");
 
 			// download the file using TransferManager
 			configFile = File.createTempFile(url, null);
@@ -174,31 +172,24 @@ public class AutoscalingConfiguration implements Serializable {
 			// shut down the transfer manager
 			tm.shutdownNow();
 
-			LOG.info(String.format(
-					"Loaded Configuration from Amazon S3 %s/%s to %s", bucket,
-					prefix, configFile.getAbsolutePath()));
-		} else if (url.startsWith("http")) {
-			configFile = File
-					.createTempFile("kinesis-autoscaling-config", null);
-			FileUtils.copyURLToFile(new URL(url), configFile, 1000, 1000);
-			LOG.info(String.format("Loaded Configuration from %s to %s", url,
+			LOG.info(String.format("Loaded Configuration from Amazon S3 %s/%s to %s", bucket, prefix,
 					configFile.getAbsolutePath()));
+		} else if (url.startsWith("http")) {
+			configFile = File.createTempFile("kinesis-autoscaling-config", null);
+			FileUtils.copyURLToFile(new URL(url), configFile, 1000, 1000);
+			LOG.info(String.format("Loaded Configuration from %s to %s", url, configFile.getAbsolutePath()));
 		} else {
 			try {
-				InputStream classpathConfig = AutoscalingConfiguration.class
-						.getClassLoader().getResourceAsStream(url);
+				InputStream classpathConfig = AutoscalingConfiguration.class.getClassLoader().getResourceAsStream(url);
 				if (classpathConfig != null && classpathConfig.available() > 0) {
 					configFile = new File(
-							AutoscalingConfiguration.class.getResource(
-									(url.startsWith("/") ? "" : "/") + url)
-									.toURI());
+							AutoscalingConfiguration.class.getResource((url.startsWith("/") ? "" : "/") + url).toURI());
 				} else {
 					// last fallback to a FS location
 					configFile = new File(url);
 
 					if (!configFile.exists()) {
-						throw new IOException("Unable to load local file from "
-								+ url);
+						throw new IOException("Unable to load local file from " + url);
 					}
 				}
 			} catch (URISyntaxException e) {
@@ -211,8 +202,7 @@ public class AutoscalingConfiguration implements Serializable {
 		// configurations
 		AutoscalingConfiguration[] configuration;
 		try {
-			configuration = mapper.readValue(configFile,
-					AutoscalingConfiguration[].class);
+			configuration = mapper.readValue(configFile, AutoscalingConfiguration[].class);
 		} catch (Exception e) {
 			throw new InvalidConfigurationException(e);
 		}
@@ -227,24 +217,25 @@ public class AutoscalingConfiguration implements Serializable {
 
 	public void validate() throws InvalidConfigurationException {
 		if (this.streamName == null || this.streamName.equals("")) {
-			throw new InvalidConfigurationException(
-					"Stream Name must be specified");
-		}
-
-		if (this.scaleOnOperation == null) {
-			throw new InvalidConfigurationException(
-					"Scale On Operation must be one of PUT or GET");
+			throw new InvalidConfigurationException("Stream Name must be specified");
 		}
 
 		if (this.scaleUp == null && this.scaleDown == null) {
-			throw new InvalidConfigurationException(
-					"Must provide at least one scale up or scale down configuration");
+			throw new InvalidConfigurationException("Must provide at least one scale up or scale down configuration");
 		}
 
-		if (this.minShards != null && this.maxShards != null
-				&& this.minShards > this.maxShards) {
-			throw new InvalidConfigurationException(
-					"Min Shard Count must be less than Max Shard Count");
+		if (this.minShards != null && this.maxShards != null && this.minShards > this.maxShards) {
+			throw new InvalidConfigurationException("Min Shard Count must be less than Max Shard Count");
+		}
+
+		// set the default operation types to 'all' if none were provided
+		if (this.scaleOnOperations == null || this.scaleOnOperations.size() == 0) {
+			this.scaleOnOperations = Arrays.asList(KinesisOperationType.values());
+		}
+
+		// set a 0 cool off if none was provided
+		if (this.scaleDown.getCoolOffMins() == null) {
+			this.scaleDown.setCoolOffMins(0);
 		}
 	}
 }

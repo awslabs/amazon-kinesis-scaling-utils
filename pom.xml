@@ -3,9 +3,9 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.amazonaws</groupId>
 	<artifactId>kinesis-scaling-utils</artifactId>
-	<version>.9.4.1</version>
+	<version>.9.5.0-beta-1</version>
 	<properties>
-		<sdk-version>1.10.39</sdk-version>
+		<sdk-version>1.10.74</sdk-version>
 	</properties>
 	<licenses>
 		<license>
@@ -59,8 +59,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.1</version>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -120,6 +120,11 @@
 			<version>${sdk-version}</version>
 		</dependency>
 		<dependency>
+			<groupId>org.javatuples</groupId>
+			<artifactId>javatuples</artifactId>
+			<version>1.2</version>
+		</dependency>
+		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>javax.servlet-api</artifactId>
 			<version>3.0.1</version>
@@ -131,15 +136,37 @@
 			<version>LATEST</version>
 		</dependency>
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>LATEST</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>joda-time</groupId>
 			<artifactId>joda-time</artifactId>
 			<version>2.2</version>
 		</dependency>
+		<dependency>
+			<groupId>org.javatuples</groupId>
+			<artifactId>javatuples</artifactId>
+			<version>1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+			<version>2.7.4</version>
+		</dependency>
 	</dependencies>
+	<url>https://github.com/awslabs/amazon-kinesis-scaling-utils</url>
+	<organization>
+		<name>Amazon.com, Inc</name>
+		<url>http://aws.amazon.com</url>
+	</organization>
+	<scm>
+		<url>https://github.com/awslabs/amazon-kinesis-scaling-utils</url>
+		<developerConnection>meyersi@amazon.com</developerConnection>
+	</scm>
+	<issueManagement>
+		<url>https://github.com/awslabs/amazon-kinesis-scaling-utils</url>
+	</issueManagement>
 </project>

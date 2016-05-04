@@ -1,3 +1,4 @@
+
 /**
  * Amazon Kinesis Scaling Utility
  *
@@ -16,6 +17,7 @@
  */
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.kinesis.scaling.ScaleDirection;
 import com.amazonaws.services.kinesis.scaling.ScalingOperationReport;
 import com.amazonaws.services.kinesis.scaling.StreamScaler;
 import com.amazonaws.services.kinesis.scaling.StreamScaler.ScalingAction;
@@ -30,12 +32,16 @@ import com.amazonaws.services.kinesis.scaling.StreamScaler.ScalingAction;
  * java -cp $CLASSPATH -Dstream-name=MyStream -Dscaling-action=scaleUp
  * -Dcount=10 -Dregion=eu-central-1<br>
  * -Dmin-shards=N -Dmax-shards=M <br>
- * Options: <li>stream-name - The name of the Stream to be scaled <li>
- * scaling-action - The action to be taken to scale. Must be one of "scaleUp",
- * "scaleDown","resize" or "report" <li>count - Number of shards by which to
- * absolutely scale up or down, or resize to <li>pct - Percentage of the
- * existing number of shards by which to scale up or down <li>kinesis-endpoint -
- * The endpoint address of the Kinesis Region where the Stream exists
+ * Options:
+ * <li>stream-name - The name of the Stream to be scaled
+ * <li>scaling-action - The action to be taken to scale. Must be one of
+ * "scaleUp", "scaleDown","resize" or "report"
+ * <li>count - Number of shards by which to absolutely scale up or down, or
+ * resize to
+ * <li>pct - Percentage of the existing number of shards by which to scale up or
+ * down
+ * <li>kinesis-endpoint - The endpoint address of the Kinesis Region where the
+ * Stream exists
  */
 public class ScalingClient {
 	private StreamScaler scaler = null;
@@ -100,60 +106,46 @@ public class ScalingClient {
 		if (System.getProperty(ACTION_PARAM) == null) {
 			throw new Exception("You must provide a Scaling Action");
 		} else {
-			this.scalingAction = ScalingAction.valueOf(System
-					.getProperty(ACTION_PARAM));
+			this.scalingAction = ScalingAction.valueOf(System.getProperty(ACTION_PARAM));
 
 			// ensure the action is one of the supported types for shards
-			if (this.shardId != null
-					&& !(this.scalingAction
-							.equals(StreamScaler.ScalingAction.split) || this.scalingAction
-							.equals(StreamScaler.ScalingAction.merge))) {
+			if (this.shardId != null && !(this.scalingAction.equals(StreamScaler.ScalingAction.split)
+					|| this.scalingAction.equals(StreamScaler.ScalingAction.merge))) {
 				throw new Exception("Can only Split or Merge Shards");
 			}
 		}
 
 		if (System.getProperty(REGION_PARAM) != null) {
-			this.region = Region.getRegion(Regions.fromName(System
-					.getProperty(REGION_PARAM)));
+			this.region = Region.getRegion(Regions.fromName(System.getProperty(REGION_PARAM)));
 		}
 
 		if (this.scalingAction != ScalingAction.report) {
-			if (System.getProperty(SCALE_COUNT_PARAM) == null
-					&& System.getProperty(SCALE_PCT_PARAM) == null)
-				throw new Exception(
-						"You must provide either a scaling Count or Percentage");
+			if (System.getProperty(SCALE_COUNT_PARAM) == null && System.getProperty(SCALE_PCT_PARAM) == null)
+				throw new Exception("You must provide either a scaling Count or Percentage");
 
-			if (System.getProperty(SCALE_COUNT_PARAM) != null
-					&& System.getProperty(SCALE_PCT_PARAM) != null)
-				throw new Exception(
-						"You must provide either a scaling Count or Percentage but not both");
+			if (System.getProperty(SCALE_COUNT_PARAM) != null && System.getProperty(SCALE_PCT_PARAM) != null)
+				throw new Exception("You must provide either a scaling Count or Percentage but not both");
 
-			if (this.shardId != null
-					&& System.getProperty(SCALE_COUNT_PARAM) == null) {
-				throw new Exception(
-						"Shards must be scaled by an absolute number only");
+			if (this.shardId != null && System.getProperty(SCALE_COUNT_PARAM) == null) {
+				throw new Exception("Shards must be scaled by an absolute number only");
 			}
 
 			if (System.getProperty(SCALE_COUNT_PARAM) != null) {
-				this.scaleCount = Integer.parseInt(System
-						.getProperty(SCALE_COUNT_PARAM));
+				this.scaleCount = Integer.parseInt(System.getProperty(SCALE_COUNT_PARAM));
 				this.scaleBy = StreamScaler.ScaleBy.count;
 			}
 
 			if (System.getProperty(SCALE_PCT_PARAM) != null) {
-				this.scalePct = Double.parseDouble(System
-						.getProperty(SCALE_PCT_PARAM));
+				this.scalePct = Double.parseDouble(System.getProperty(SCALE_PCT_PARAM));
 				this.scaleBy = StreamScaler.ScaleBy.pct;
 			}
 
 			if (System.getProperty(MIN_SHARDS_PARAM) != null) {
-				this.minShards = Integer.parseInt(System
-						.getProperty(MIN_SHARDS_PARAM));
+				this.minShards = Integer.parseInt(System.getProperty(MIN_SHARDS_PARAM));
 			}
 
 			if (System.getProperty(MAX_SHARDS_PARAM) != null) {
-				this.maxShards = Integer.parseInt(System
-						.getProperty(MAX_SHARDS_PARAM));
+				this.maxShards = Integer.parseInt(System.getProperty(MAX_SHARDS_PARAM));
 			}
 		}
 
@@ -169,39 +161,34 @@ public class ScalingClient {
 		case scaleUp:
 			switch (this.scaleBy) {
 			case count:
-				report = scaler.scaleUp(this.streamName, this.scaleCount,
-						this.minShards, this.maxShards);
+				report = scaler.scaleUp(this.streamName, this.scaleCount, this.minShards, this.maxShards);
 				break;
 			case pct:
-				report = scaler.scaleUp(this.streamName, this.scalePct,
-						this.minShards, this.maxShards);
+				report = scaler.scaleUp(this.streamName, this.scalePct, this.minShards, this.maxShards);
 				break;
 			}
 			break;
 		case scaleDown:
 			switch (this.scaleBy) {
 			case count:
-				report = scaler.scaleDown(this.streamName, this.scaleCount,
-						this.minShards, this.maxShards);
+				report = scaler.scaleDown(this.streamName, this.scaleCount, this.minShards, this.maxShards);
 				break;
 			case pct:
-				report = scaler.scaleDown(this.streamName, this.scalePct,
-						this.minShards, this.maxShards);
+				report = scaler.scaleDown(this.streamName, this.scalePct, this.minShards, this.maxShards);
 				break;
 			}
 			break;
 		case resize:
 			switch (this.scaleBy) {
 			case count:
-				report = scaler.resize(this.streamName, this.scaleCount,
-						this.minShards, this.maxShards);
+				report = scaler.resize(this.streamName, this.scaleCount, this.minShards, this.maxShards);
 				break;
 			case pct:
 				throw new Exception("Cannot resize by a Percentage");
 			}
 			break;
 		case report:
-			report = scaler.reportFor(this.streamName, 0);
+			report = scaler.reportFor(this.streamName, 0, ScaleDirection.NONE);
 		}
 
 		System.out.println("Scaling Operation Complete");

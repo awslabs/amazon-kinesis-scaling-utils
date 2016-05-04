@@ -19,7 +19,6 @@ package com.amazonaws.services.kinesis.scaling;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
 /**
  * Transfer Object for the output of a Scaling Operation
@@ -28,26 +27,31 @@ public class ScalingOperationReport {
 	private Map<String, ShardHashInfo> layout;
 
 	private int operationsMade;
+	private ScaleDirection scaleDirection;
 
 	private ObjectMapper mapper = new ObjectMapper();
 
 	public ScalingOperationReport(Map<String, ShardHashInfo> report) {
-		this(report, 0);
+		this(report, 0, ScaleDirection.NONE);
 	}
 
-	public ScalingOperationReport(Map<String, ShardHashInfo> report, int operationsMade) {
+	public ScalingOperationReport(Map<String, ShardHashInfo> report, int operationsMade,
+			ScaleDirection scaleDirection) {
 		this.layout = report;
 		this.operationsMade = operationsMade;
-
-		mapper.enable(SerializationFeature.WRITE_BIGDECIMAL_AS_PLAIN);
+		this.scaleDirection = scaleDirection;
 	}
 
 	public Map<String, ShardHashInfo> getLayout() {
-		return layout;
+		return this.layout;
 	}
 
 	public int getOperationsMade() {
-		return operationsMade;
+		return this.operationsMade;
+	}
+
+	public ScaleDirection getScaleDirection() {
+		return this.scaleDirection;
 	}
 
 	public String asJson() throws Exception {
@@ -67,10 +71,17 @@ public class ScalingOperationReport {
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 
-		for (ShardHashInfo v : layout.values()) {
-			sb.append(v.toString());
-		}
+		// add the direction
+		sb.append(String.format("Scaling Direction: %s\n", this.scaleDirection));
 
-		return sb.substring(0, sb.length() - 1);
+		if (this.layout != null) {
+			for (ShardHashInfo v : this.layout.values()) {
+				sb.append(v.toString());
+			}
+
+			return sb.substring(0, sb.length() - 1);
+		} else {
+			return null;
+		}
 	}
 }

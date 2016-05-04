@@ -19,15 +19,19 @@ package com.amazonaws.services.kinesis.scaling.auto;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.amazonaws.services.cloudwatch.model.Dimension;
+import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
+import com.amazonaws.services.cloudwatch.model.Statistic;
+
 public enum KinesisOperationType {
-    PUT {
+	PUT {
 		@Override
-        public StreamMetrics getMaxCapacity() {
-			StreamMetrics metrics = new StreamMetrics();
+		public StreamMetrics getMaxCapacity() {
+			StreamMetrics metrics = new StreamMetrics(PUT);
 			metrics.put(StreamMetric.Bytes, 1_048_576);
 			metrics.put(StreamMetric.Records, 1000);
 			return metrics;
-        }
+		}
 
 		@Override
 		public List<String> getMetricsToFetch() {
@@ -38,26 +42,26 @@ public enum KinesisOperationType {
 			metricsToFetch.add("PutRecords.Records");
 			return metricsToFetch;
 		}
-    },
-    GET {
+	},
+	GET {
 		@Override
-        public StreamMetrics getMaxCapacity() {
-			StreamMetrics metrics = new StreamMetrics();
+		public StreamMetrics getMaxCapacity() {
+			StreamMetrics metrics = new StreamMetrics(GET);
 			metrics.put(StreamMetric.Bytes, 2_097_152);
 			metrics.put(StreamMetric.Records, 2000);
 			return metrics;
-        }
+		}
 
 		@Override
 		public List<String> getMetricsToFetch() {
 			List<String> metricsToFetch = new ArrayList<>();
 			metricsToFetch.add("GetRecords.Bytes");
 			metricsToFetch.add("GetRecords.Success");
-			return metricsToFetch;			
+			return metricsToFetch;
 		}
-    };
+	};
 
-    public abstract StreamMetrics getMaxCapacity();
-    public abstract List<String> getMetricsToFetch();
+	public abstract StreamMetrics getMaxCapacity();
 
+	public abstract List<String> getMetricsToFetch();
 }

@@ -17,23 +17,20 @@
 package com.amazonaws.services.kinesis.scaling.auto;
 
 public enum StreamMetric {
-	Bytes("Bytes"),
-	Records("Count")
-	;
+	Bytes("Bytes"), Records("Count");
 
 	private final String unit;
-	
+
 	StreamMetric(String u) {
 		this.unit = u;
 	}
-	
+
 	public static StreamMetric fromUnit(String unit) {
-		for (StreamMetric m: values()) {
-			if(m.unit.equals(unit)) {
+		for (StreamMetric m : values()) {
+			if (m.unit.equals(unit)) {
 				return m;
 			}
 		}
 		return null;
 	}
-
 }
