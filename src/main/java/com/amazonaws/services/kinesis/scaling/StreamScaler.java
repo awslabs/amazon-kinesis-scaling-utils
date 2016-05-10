@@ -386,13 +386,13 @@ public class StreamScaler {
 						shardStack.push(splitUpper.getHigherShard());
 
 						// merge lower of the new shards with the lowest shard
-						LOG.debug(String.format("Merging Shard %s with %s", lowerShard.getShardId(),
+						LOG.info(String.format("Merging Shard %s with %s", lowerShard.getShardId(),
 								splitUpper.getLowerShard().getShardId()));
 						ShardHashInfo lowerMerged = new AdjacentShards(streamName, lowerShard,
 								splitUpper.getLowerShard()).doMerge(kinesisClient,
 										shardStack.isEmpty() ? splitUpper.getHigherShard().getShardId()
 												: shardStack.lastElement().getShardId());
-						LOG.debug(String.format("Created Shard %s (%s)", lowerMerged.getShardId(),
+						LOG.info(String.format("Created Shard %s (%s)", lowerMerged.getShardId(),
 								pctFormat.format(lowerMerged.getPctWidth())));
 						shardsCompleted++;
 
@@ -421,7 +421,7 @@ public class StreamScaler {
 						shardStack.isEmpty() ? lowerShard.getShardId() : shardStack.lastElement().getShardId());
 				operationsMade++;
 
-				LOG.debug(String.format("Split Shard %s at %s Creating Final Shard %s and Intermediate Shard %s (%s)",
+				LOG.info(String.format("Split Shard %s at %s Creating Final Shard %s and Intermediate Shard %s (%s)",
 						lowerShard.getShardId(), pctFormat.format(targetPct), splitLower.getLowerShard().getShardId(),
 						splitLower.getHigherShard(), pctFormat.format(splitLower.getHigherShard().getPctWidth())));
 

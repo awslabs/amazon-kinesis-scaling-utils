@@ -403,7 +403,7 @@ public class StreamMonitor implements Runnable {
 					LOG.debug("Sleep");
 					Thread.sleep(this.config.getCheckInterval() * 1000);
 				} catch (InterruptedException e) {
-					LOG.error(e);
+					LOG.error(e.getMessage(), e);
 					break;
 				}
 			} while (keepRunning);

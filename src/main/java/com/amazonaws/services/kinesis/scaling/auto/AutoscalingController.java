@@ -77,7 +77,7 @@ public class AutoscalingController implements Runnable {
 
 					controller = getInstance(config);
 				} catch (Exception e) {
-					LOG.error(e);
+					LOG.error(e.getMessage(), e);
 				}
 			} else {
 				throw new InvalidConfigurationException(
@@ -98,7 +98,7 @@ public class AutoscalingController implements Runnable {
 			try {
 				controller = new AutoscalingController(config);
 			} catch (Exception e) {
-				LOG.error(e);
+				LOG.error(e.getMessage(), e);
 			}
 			return controller;
 		}
@@ -107,13 +107,13 @@ public class AutoscalingController implements Runnable {
 	public void stopAll() throws Exception {
 		for (Integer i : runningMonitors.keySet()) {
 			StreamMonitor monitor = runningMonitors.get(i);
-			LOG.debug("Stopping Stream Monitor: "
+			LOG.info("Stopping Stream Monitor: "
 					+ monitor.getConfig().getStreamName() + " ...");
 			monitor.stop();
 			// block until the Future returns that the Stream Monitor has
 			// stopped
 			monitorFutures.get(i).get();
-			LOG.debug("Stream Monitor: " + monitor.getConfig().getStreamName()
+			LOG.info("Stream Monitor: " + monitor.getConfig().getStreamName()
 					+ " stopped");
 		}
 	}
@@ -133,7 +133,7 @@ public class AutoscalingController implements Runnable {
 					monitorFutures.put(i, executor.submit(monitor));
 					i++;
 				} catch (Exception e) {
-					LOG.error(e);
+					LOG.error(e.getMessage(), e);
 				}
 			}
 
@@ -159,11 +159,11 @@ public class AutoscalingController implements Runnable {
 				stopAll();
 
 				// stop the executor service
-				LOG.debug(e);
+				LOG.error(e.getMessage(), e);
 				LOG.info("Terminating Thread Pool");
 				executor.shutdown();
 			} catch (Exception e1) {
-				LOG.error(e);
+				LOG.error(e1.getMessage(), e1);
 			}
 		}
 	}
@@ -176,7 +176,7 @@ public class AutoscalingController implements Runnable {
 		try {
 			AutoscalingController.getInstance().startMonitors();
 		} catch (Exception e) {
-			LOG.error(e);
+			LOG.error(e.getMessage(), e);
 		}
 	}
 
