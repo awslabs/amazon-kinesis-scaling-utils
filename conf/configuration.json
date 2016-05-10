@@ -2,7 +2,7 @@
 	{
         "streamName": "mil-dev-beaconEvents",
         "region": "eu-west-1",
-        "scaleOnOperation": "PUT",
+        "scaleOnOperation": ["PUT","GET"],
         "minShards": 2,
         "maxShards": 16,
         "refreshShardsNumberAfterMin": 3,
