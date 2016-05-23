@@ -28,18 +28,23 @@ public class ScalingOperationReport {
 
 	private int operationsMade;
 	private ScaleDirection scaleDirection;
-
+	private ScalingCompletionStatus endStatus;
 	private ObjectMapper mapper = new ObjectMapper();
 
-	public ScalingOperationReport(Map<String, ShardHashInfo> report) {
-		this(report, 0, ScaleDirection.NONE);
+	public ScalingOperationReport(ScalingCompletionStatus endStatus, Map<String, ShardHashInfo> report) {
+		this(endStatus, report, 0, ScaleDirection.NONE);
 	}
 
-	public ScalingOperationReport(Map<String, ShardHashInfo> report, int operationsMade,
-			ScaleDirection scaleDirection) {
+	public ScalingOperationReport(ScalingCompletionStatus endStatus, Map<String, ShardHashInfo> report,
+			int operationsMade, ScaleDirection scaleDirection) {
+		this.endStatus = endStatus;
 		this.layout = report;
 		this.operationsMade = operationsMade;
 		this.scaleDirection = scaleDirection;
+	}
+
+	public ScalingCompletionStatus getEndStatus() {
+		return endStatus;
 	}
 
 	public Map<String, ShardHashInfo> getLayout() {

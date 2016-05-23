@@ -36,6 +36,7 @@ import com.amazonaws.services.cloudwatch.model.Datapoint;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.scaling.AlreadyOneShardException;
 import com.amazonaws.services.kinesis.scaling.ScaleDirection;
+import com.amazonaws.services.kinesis.scaling.ScalingCompletionStatus;
 import com.amazonaws.services.kinesis.scaling.ScalingOperationReport;
 import com.amazonaws.services.kinesis.scaling.StreamScaler;
 import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
@@ -292,14 +293,12 @@ public class StreamMonitor implements Runnable {
 				} else {
 					// submit a scale down
 					Integer scaleDownCount = this.config.getScaleDown().getScaleCount();
-					LOG.info(String
-							.format("Requesting Scale Down of Stream %s by %s as %s has been below %s%% for %s Minutes",
-									this.config.getStreamName(),
-									(scaleDownCount != null) ? scaleDownCount
-											: this.config.getScaleDown().getScalePct() + "%",
-									config.getScaleOnOperations().toString(),
-									this.config.getScaleDown().getScaleThresholdPct(),
-									this.config.getScaleDown().getScaleAfterMins()));
+					LOG.info(String.format(
+							"Requesting Scale Down of Stream %s by %s as %s has been below %s%% for %s Minutes",
+							this.config.getStreamName(),
+							(scaleDownCount != null) ? scaleDownCount : this.config.getScaleDown().getScalePct() + "%",
+							config.getScaleOnOperations().toString(), this.config.getScaleDown().getScaleThresholdPct(),
+							this.config.getScaleDown().getScaleAfterMins()));
 					try {
 						if (scaleDownCount != null) {
 							report = this.scaler.scaleDown(this.config.getStreamName(), scaleDownCount,
@@ -328,7 +327,8 @@ public class StreamMonitor implements Runnable {
 				// scale direction not set, so we're not going to scale
 				// up or down - everything fine
 				LOG.info("No Scaling required - Stream capacity within specified tolerances");
-				return this.scaler.reportFor(this.config.getStreamName(), 0, finalScaleDirection);
+				return this.scaler.reportFor(ScalingCompletionStatus.NoActionRequired, this.config.getStreamName(), 0,
+						finalScaleDirection);
 			}
 		} catch (Exception e) {
 			LOG.error("Failed to process stream " + this.config.getStreamName(), e);

@@ -18,6 +18,7 @@
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kinesis.scaling.ScaleDirection;
+import com.amazonaws.services.kinesis.scaling.ScalingCompletionStatus;
 import com.amazonaws.services.kinesis.scaling.ScalingOperationReport;
 import com.amazonaws.services.kinesis.scaling.StreamScaler;
 import com.amazonaws.services.kinesis.scaling.StreamScaler.ScalingAction;
@@ -188,7 +189,7 @@ public class ScalingClient {
 			}
 			break;
 		case report:
-			report = scaler.reportFor(this.streamName, 0, ScaleDirection.NONE);
+			report = scaler.reportFor(ScalingCompletionStatus.ReportOnly, this.streamName, 0, ScaleDirection.NONE);
 		}
 
 		System.out.println("Scaling Operation Complete");
