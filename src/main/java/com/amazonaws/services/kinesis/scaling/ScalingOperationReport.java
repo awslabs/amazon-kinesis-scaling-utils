@@ -60,7 +60,7 @@ public class ScalingOperationReport {
 	}
 
 	public String asJson() throws Exception {
-		return mapper.writeValueAsString(layout);
+		return mapper.writeValueAsString(this);
 	}
 
 	/**
