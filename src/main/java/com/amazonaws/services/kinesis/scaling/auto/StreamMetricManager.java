@@ -147,8 +147,8 @@ public class StreamMetricManager {
 			}
 		}
 
-		for (KinesisOperationType op : this.cloudwatchRequestTemplates.keySet()) {
-			for (GetMetricStatisticsRequest req : this.cloudwatchRequestTemplates.get(op)) {
+		for (Map.Entry<KinesisOperationType, List<GetMetricStatisticsRequest>> entry : this.cloudwatchRequestTemplates.entrySet()) {
+			for (GetMetricStatisticsRequest req : this.cloudwatchRequestTemplates.get(entry.getKey())) {
 				double sampleMetric = 0D;
 
 				req.withStartTime(metricStartTime.toDate()).withEndTime(metricEndTime.toDate());
@@ -164,7 +164,7 @@ public class StreamMetricManager {
 				for (Datapoint d : cloudWatchMetrics.getDatapoints()) {
 					StreamMetric metric = StreamMetric.fromUnit(d.getUnit());
 
-					Map<Datapoint, Double> metrics = currentUtilisationMetrics.get(op).get(metric);
+					Map<Datapoint, Double> metrics = currentUtilisationMetrics.get(entry.getKey()).get(metric);
 					if (metrics == null) {
 						metrics = new HashMap<>();
 					}
@@ -175,7 +175,7 @@ public class StreamMetricManager {
 					}
 					sampleMetric += (d.getSum() / StreamMonitor.CLOUDWATCH_PERIOD);
 					metrics.put(d, sampleMetric);
-					currentUtilisationMetrics.get(op).put(metric, metrics);
+					currentUtilisationMetrics.get(entry.getKey()).put(metric, metrics);
 				}
 			}
 		}

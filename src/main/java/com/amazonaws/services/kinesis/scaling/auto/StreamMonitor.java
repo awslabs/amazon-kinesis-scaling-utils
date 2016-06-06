@@ -104,9 +104,9 @@ public class StreamMonitor implements Runnable {
 		// (PUT, GET)
 		Map<KinesisOperationType, ScaleDirection> scaleVotes = new HashMap<>();
 
-		for (KinesisOperationType op : currentUtilisationMetrics.keySet()) {
+		for (Map.Entry<KinesisOperationType, Map<StreamMetric, Map<Datapoint, Double>>> entry : currentUtilisationMetrics.entrySet()) {
 			// set the default scaling vote to 'do nothing'
-			scaleVotes.put(op, ScaleDirection.NONE);
+			scaleVotes.put(entry.getKey(), ScaleDirection.NONE);
 
 			Map<StreamMetric, Triplet<Integer, Integer, Double>> perMetricSamples = new HashMap<>();
 			StreamMetric higherUtilisationMetric;
@@ -125,12 +125,12 @@ public class StreamMonitor implements Runnable {
 
 				Map<Datapoint, Double> metrics = new HashMap<>();
 
-				if (!currentUtilisationMetrics.containsKey(op)
-						|| !currentUtilisationMetrics.get(op).containsKey(metric)) {
+				if (!currentUtilisationMetrics.containsKey(entry.getKey())
+						|| !entry.getValue().containsKey(metric)) {
 					// we have no samples for this type of metric which is ok -
 					// they'll later be counted as low metrics
 				} else {
-					metrics = currentUtilisationMetrics.get(op).get(metric);
+					metrics = entry.getValue().get(metric);
 				}
 
 				// if we got nothing back, then there are no operations of the
@@ -141,27 +141,27 @@ public class StreamMonitor implements Runnable {
 
 				// process the data point aggregates retrieved from CloudWatch
 				// and log scale up/down votes by period
-				for (Datapoint d : metrics.keySet()) {
-					currentMax = metrics.get(d);
-					currentPct = currentMax / streamMaxCapacity.get(op).get(metric);
+				for (Map.Entry<Datapoint, Double> datapointEntry : metrics.entrySet()) {
+					currentMax = datapointEntry.getValue();
+					currentPct = currentMax / streamMaxCapacity.get(entry.getKey()).get(metric);
 					// keep track of the last measures
-					if (lastTime == null || new DateTime(d.getTimestamp()).isAfter(lastTime)) {
+					if (lastTime == null || new DateTime(datapointEntry.getKey().getTimestamp()).isAfter(lastTime)) {
 						latestPct = currentPct;
 						latestMax = currentMax;
 
 						// latest average is a simple moving average
 						latestAvg = latestAvg == 0d ? currentPct : (latestAvg + currentPct) / 2;
 					}
-					lastTime = new DateTime(d.getTimestamp());
+					lastTime = new DateTime(datapointEntry.getKey().getTimestamp());
 
 					// if the pct for the datapoint exceeds or is below the
 					// thresholds, then add low/high samples
 					if (currentPct > new Double(this.config.getScaleUp().getScaleThresholdPct()) / 100) {
-						LOG.debug(String.format("%s %s: Cached High Alarm Condition for %.2f %s/Second (%.2f%%)", op,
+						LOG.debug(String.format("%s %s: Cached High Alarm Condition for %.2f %s/Second (%.2f%%)", entry.getKey(),
 								metric, currentMax, metric, currentPct * 100));
 						highSamples++;
 					} else if (currentPct < new Double(this.config.getScaleDown().getScaleThresholdPct()) / 100) {
-						LOG.debug(String.format("%s %s: Cached Low Alarm Condition for %.2f %s/Second (%.2f%%)", op,
+						LOG.debug(String.format("%s %s: Cached Low Alarm Condition for %.2f %s/Second (%.2f%%)", entry.getKey(),
 								metric, currentMax, metric, currentPct * 100));
 						lowSamples++;
 					}
@@ -175,8 +175,8 @@ public class StreamMonitor implements Runnable {
 
 				LOG.info(
 						String.format(metric + ": Stream %s Used %s[%s] Capacity ~ %.2f%% (%,.0f " + metric + " of %d)",
-								config.getStreamName(), op, metric, latestAvg * 100, latestMax,
-								streamMaxCapacity.get(op).get(metric)));
+								config.getStreamName(), entry.getKey(), metric, latestAvg * 100, latestMax,
+								streamMaxCapacity.get(entry.getKey()).get(metric)));
 
 				// merge the per-stream metric samples together for the
 				// operation
@@ -221,14 +221,14 @@ public class StreamMonitor implements Runnable {
 			}
 
 			LOG.info(String.format(
-					"Will decide scaling action based on metric %s[%s] due to higher utilisation metric %.2f%%", op,
+					"Will decide scaling action based on metric %s[%s] due to higher utilisation metric %.2f%%", entry.getKey(),
 					higherUtilisationMetric, higherUtilisationPct * 100));
 
 			if (perMetricSamples.get(higherUtilisationMetric).getValue0() >= config.getScaleUp().getScaleAfterMins()) {
-				scaleVotes.put(op, ScaleDirection.UP);
+				scaleVotes.put(entry.getKey(), ScaleDirection.UP);
 			} else if (perMetricSamples.get(higherUtilisationMetric).getValue1() >= config.getScaleDown()
 					.getScaleAfterMins()) {
-				scaleVotes.put(op, ScaleDirection.DOWN);
+				scaleVotes.put(entry.getKey(), ScaleDirection.DOWN);
 			}
 		}
 
