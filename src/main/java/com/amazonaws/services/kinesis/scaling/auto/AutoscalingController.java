@@ -41,12 +41,12 @@ public class AutoscalingController implements Runnable {
 	private AutoscalingConfiguration[] config;
 
 	// list of all currently running stream monitors
-	private Map<Integer, StreamMonitor> runningMonitors = new HashMap<>();
+	private final Map<Integer, StreamMonitor> runningMonitors = new HashMap<>();
 
-	private Map<Integer, Future<?>> monitorFutures = new HashMap<>();
+	private final Map<Integer, Future<?>> monitorFutures = new HashMap<>();
 
 	// set up the executor thread pool
-	private ExecutorService executor = Executors.newFixedThreadPool(20);
+	private final ExecutorService executor = Executors.newFixedThreadPool(20);
 
 	private static AutoscalingController controller;
 
