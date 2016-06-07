@@ -167,6 +167,8 @@ public class ScalingClient {
 			case pct:
 				report = scaler.scaleUp(this.streamName, this.scalePct, this.minShards, this.maxShards);
 				break;
+			default:
+				break;
 			}
 			break;
 		case scaleDown:
@@ -177,6 +179,8 @@ public class ScalingClient {
 			case pct:
 				report = scaler.scaleDown(this.streamName, this.scalePct, this.minShards, this.maxShards);
 				break;
+			default:
+				break;
 			}
 			break;
 		case resize:
@@ -186,10 +190,14 @@ public class ScalingClient {
 				break;
 			case pct:
 				throw new Exception("Cannot resize by a Percentage");
+				default:
+					break;
 			}
 			break;
 		case report:
 			report = scaler.reportFor(ScalingCompletionStatus.ReportOnly, this.streamName, 0, ScaleDirection.NONE);
+			default:
+				break;
 		}
 
 		System.out.println("Scaling Operation Complete");

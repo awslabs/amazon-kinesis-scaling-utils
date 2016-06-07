@@ -66,8 +66,8 @@ public class StreamMetrics {
 
 		sb.append(String.format("Operation Type: %s", this.type) + "\n");
 
-		for (StreamMetric metric : this.metrics.keySet()) {
-			sb.append(metric + ":" + this.metrics.get(metric) + "\n");
+		for (Map.Entry<StreamMetric, Integer> entry : this.metrics.entrySet()) {
+			sb.append(entry.getKey() + ":" + this.metrics.get(entry.getKey()) + "\n");
 		}
 
 		return sb.toString();

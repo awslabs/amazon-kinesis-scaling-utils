@@ -105,14 +105,14 @@ public class AutoscalingController implements Runnable {
 	}
 
 	public void stopAll() throws Exception {
-		for (Integer i : runningMonitors.keySet()) {
-			StreamMonitor monitor = runningMonitors.get(i);
+		for (Map.Entry<Integer, StreamMonitor> entry : runningMonitors.entrySet()) {
+			StreamMonitor monitor = entry.getValue();
 			LOG.info("Stopping Stream Monitor: "
 					+ monitor.getConfig().getStreamName() + " ...");
 			monitor.stop();
 			// block until the Future returns that the Stream Monitor has
 			// stopped
-			monitorFutures.get(i).get();
+			monitorFutures.get(entry.getKey()).get();
 			LOG.info("Stream Monitor: " + monitor.getConfig().getStreamName()
 					+ " stopped");
 		}
@@ -139,14 +139,14 @@ public class AutoscalingController implements Runnable {
 
 			// spin through all stream monitors to see if any failed
 			while (true) {
-				for (Integer n : monitorFutures.keySet()) {
-					if (monitorFutures.get(n) == null) {
+				for (Map.Entry<Integer, Future<?>> entry : monitorFutures.entrySet()) {
+					if (entry.getValue() == null) {
 						throw new InterruptedException("Null Monitor Future");
 					} else {
-						if (monitorFutures.get(n).isDone()) {
-							if (runningMonitors.get(n).getException() != null) {
+						if (entry.getValue().isDone()) {
+							if (runningMonitors.get(entry.getKey()).getException() != null) {
 								throw new InterruptedException(runningMonitors
-										.get(n).getException().getMessage());
+										.get(entry.getKey()).getException().getMessage());
 							}
 						}
 					}
