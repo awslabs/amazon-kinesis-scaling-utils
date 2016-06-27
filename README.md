@@ -8,6 +8,7 @@ You can also deploy the Web Archive to a Java Application Server, and allow Scal
 ##Manually Managing your Stream##
 
 You can manually run the Scaling Utility from the command line by calling the ScalingClient with the following syntax.
+
 ```
 java -cp KinesisScalingUtils-complete.jar -Dstream-name=MyStream -Dscaling-action=scaleUp -Dcount=10 -Dregion=eu-west-1 ScalingClient
 
@@ -23,6 +24,20 @@ shard-id - The Shard which you want to target for Scaling. NOTE: This will creat
 ```
 
 You can also integrate the StreamScaler class with existing control systems.
+
+Here are some useful shortcuts:
+
+### Scale a Stream up by 10 Shards
+
+```java -cp dist/KinesisScalingUtils-complete.jar -Dstream-name=MyStream -Dscaling-action=scaleUp -Dcount=10 -Dregion=eu-west-1 ScalingClient```
+
+### Generate a report of Shard Keyspace Sizing
+
+```java -cp dist/KinesisScalingUtils-complete.jar -Dstream-name=MyStream -Dscaling-action=report -Dregion=eu-west-1 ScalingClient```
+
+### Scale up a specific Shard by making it into 3 equally sized Shards
+
+```java -cp dist/KinesisScalingUtils-complete.jar -Dstream-name=MyStream -Dscaling-action=scaleUp -Dcount=3 -Dshard-id=shard-0000000000 -Dregion=eu-west-1 ScalingClient```
 
 ##Kinesis Autoscaling##
 
