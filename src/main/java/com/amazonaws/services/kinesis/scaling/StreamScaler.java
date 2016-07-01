@@ -16,10 +16,12 @@
  */
 package com.amazonaws.services.kinesis.scaling;
 
+import java.net.URI;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Stack;
 
 import org.apache.commons.logging.Log;
@@ -73,6 +75,21 @@ public class StreamScaler {
 	}
 
 	public StreamScaler(Region region) throws Exception {
+		this(Optional.of(region), Optional.empty());
+	}
+
+	/**
+	 * Construct a StreamScaler for a specific AWS region or a custom Kinesis endpoint.
+	 *
+	 * @param region the region to be used by the Kinesis client
+	 * @param endpoint the endpoint to be used by the Kinesis client, will take precedence over region
+	 * @throws Exception
+     */
+	public StreamScaler(Optional<Region> region, Optional<URI> endpoint) throws Exception {
+		if (!region.isPresent() && !endpoint.isPresent()) {
+			throw new IllegalArgumentException("Either provide region or endpoint");
+		}
+
 		pctFormat.setMaximumFractionDigits(1);
 
 		// use the default provider chain plus support for classpath
@@ -89,12 +106,8 @@ public class StreamScaler {
 
 		kinesisClient = new AmazonKinesisClient(new AWSCredentialsProviderChain(
 				new DefaultAWSCredentialsProviderChain(), new ClasspathPropertiesFileCredentialsProvider()), config);
-		kinesisClient.setRegion(region);
-
-		String kinesisEndpoint = System.getProperty("kinesisEndpoint");
-		if (kinesisEndpoint != null) {
-			kinesisClient.setEndpoint(kinesisEndpoint);
-		}
+		region.ifPresent(kinesisClient::setRegion);
+		endpoint.map(URI::toASCIIString).ifPresent(kinesisClient::setEndpoint);
 
 		if (kinesisClient.getServiceName() == null) {
 			throw new Exception("Unable to reach Kinesis Service");

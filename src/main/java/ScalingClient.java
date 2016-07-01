@@ -23,6 +23,9 @@ import com.amazonaws.services.kinesis.scaling.ScalingOperationReport;
 import com.amazonaws.services.kinesis.scaling.StreamScaler;
 import com.amazonaws.services.kinesis.scaling.StreamScaler.ScalingAction;
 
+import java.net.URI;
+import java.util.Optional;
+
 /**
  * Class which provides a host environment interface to working with the Kinesis
  * Scaling Utility<br>
@@ -73,6 +76,8 @@ public class ScalingClient {
 
 	public static final String REGION_PARAM = "region";
 
+	public static final String ENDPOINT_PARAM = "kinesisEndpoint";
+
 	public static final String SHARD_ID_PARAM = "shard-id";
 
 	public static final String MIN_SHARDS_PARAM = "min-shards";
@@ -94,6 +99,8 @@ public class ScalingClient {
 	private Integer minShards;
 
 	private Integer maxShards;
+
+	private Optional<URI> endpoint;
 
 	private void loadParams() throws Exception {
 		if (System.getProperty(STREAM_PARAM) == null) {
@@ -119,6 +126,8 @@ public class ScalingClient {
 		if (System.getProperty(REGION_PARAM) != null) {
 			this.region = Region.getRegion(Regions.fromName(System.getProperty(REGION_PARAM)));
 		}
+
+		this.endpoint = Optional.ofNullable(System.getProperty(ENDPOINT_PARAM)).map(URI::create);
 
 		if (this.scalingAction != ScalingAction.report) {
 			if (System.getProperty(SCALE_COUNT_PARAM) == null && System.getProperty(SCALE_PCT_PARAM) == null)
@@ -150,7 +159,7 @@ public class ScalingClient {
 			}
 		}
 
-		scaler = new StreamScaler(this.region);
+		scaler = new StreamScaler(Optional.of(this.region), this.endpoint);
 	}
 
 	private void run() throws Exception {
