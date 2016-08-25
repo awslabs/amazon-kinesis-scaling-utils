@@ -32,6 +32,7 @@ import com.amazonaws.services.cloudwatch.model.Datapoint;
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
+import com.amazonaws.services.cloudwatch.model.InternalServiceException;
 import com.amazonaws.services.cloudwatch.model.Statistic;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
@@ -147,7 +148,8 @@ public class StreamMetricManager {
 			}
 		}
 
-		for (Map.Entry<KinesisOperationType, List<GetMetricStatisticsRequest>> entry : this.cloudwatchRequestTemplates.entrySet()) {
+		for (Map.Entry<KinesisOperationType, List<GetMetricStatisticsRequest>> entry : this.cloudwatchRequestTemplates
+				.entrySet()) {
 			for (GetMetricStatisticsRequest req : this.cloudwatchRequestTemplates.get(entry.getKey())) {
 				double sampleMetric = 0D;
 
@@ -156,7 +158,27 @@ public class StreamMetricManager {
 				// call cloudwatch to get the required metrics
 				LOG.debug(String.format("Requesting %s minutes of CloudWatch Data for Stream Metric %s",
 						cwSampleDuration, req.getMetricName()));
-				GetMetricStatisticsResult cloudWatchMetrics = this.cloudWatchClient.getMetricStatistics(req);
+
+				GetMetricStatisticsResult cloudWatchMetrics = null;
+				boolean ok = false;
+				int tryCount = 1;
+				long sleepCap = 2000;
+				int tryCap = 20;
+				while (!ok) {
+					try {
+						cloudWatchMetrics = this.cloudWatchClient.getMetricStatistics(req);
+						ok = true;
+					} catch (InternalServiceException e) {
+						// this is probably just a transient error, so retry
+						// after backoff
+						tryCount++;
+						if (tryCount >= tryCap) {
+							throw e;
+						}
+						long sleepFor = new Double(Math.pow(2, tryCount) * 100).longValue();
+						Thread.sleep(sleepFor > sleepCap ? sleepCap : sleepFor);
+					}
+				}
 
 				// aggregate the sample metrics by datapoint into a map,
 				// so that PutRecords and PutRecord measures are added
@@ -177,6 +199,7 @@ public class StreamMetricManager {
 					metrics.put(d, sampleMetric);
 					currentUtilisationMetrics.get(entry.getKey()).put(metric, metrics);
 				}
+
 			}
 		}
 
