@@ -14,7 +14,7 @@ java -cp KinesisScalingUtils-complete.jar -Dstream-name=MyStream -Dscaling-actio
 
 Options: 
 stream-name - The name of the Stream to be scaled
-scaling-action - The action to be taken to scale. Must be one of "scaleUp”, "scaleDown" or “resize"
+scaling-action - The action to be taken to scale. Must be one of "scaleUp", "scaleDown", "resize", or "report"
 count - Number of shards by which to absolutely scale up or down, or resize to or:
 pct - Percentage of the existing number of shards by which to scale up or down
 min-shards - The minimum number of shards to maintain
