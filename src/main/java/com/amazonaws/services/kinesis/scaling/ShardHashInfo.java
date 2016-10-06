@@ -32,24 +32,24 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
  * Stream, as well as utility methods for working with a Stream of Shards
  */
 public class ShardHashInfo {
-	private String streamName;
+	private final String streamName;
 
 	@JsonProperty
-	private BigInteger startHash;
+	private final BigInteger startHash;
 
 	@JsonProperty
-	private BigInteger endHash;
+	private final BigInteger endHash;
 
 	@JsonProperty
-	private BigInteger hashWidth;
+	private final BigInteger hashWidth;
 
 	@JsonProperty
 	@JsonSerialize(using = PercentDoubleSerialiser.class)
-	private Double pctOfKeyspace;
+	private final Double pctOfKeyspace;
 
 	private Boolean matchesTargetResize;
 
-	private Shard shard;
+	private final Shard shard;
 
 	private final NumberFormat pctFormat = NumberFormat.getPercentInstance();
 

@@ -49,19 +49,19 @@ import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
 public class StreamMetricManager {
 	private final Log LOG = LogFactory.getLog(StreamMetricManager.class);
 	public final String CW_NAMESPACE = "AWS/Kinesis";
-	private String streamName;
-	private AmazonCloudWatch cloudWatchClient;
-	private AmazonKinesisClient kinesisClient;
+	private final String streamName;
+	private final AmazonCloudWatch cloudWatchClient;
+	private final AmazonKinesisClient kinesisClient;
 
 	// the set of all Operations that will be tracked in cloudwatch
-	private Set<KinesisOperationType> trackedOperations = new HashSet<>();
+	private final Set<KinesisOperationType> trackedOperations = new HashSet<>();
 
 	// the current maximum capacity of the stream
-	private Map<KinesisOperationType, StreamMetrics> streamMaxCapacity = new HashMap<>();
+	private final Map<KinesisOperationType, StreamMetrics> streamMaxCapacity = new HashMap<>();
 
 	// set of CloudWatch request template objects, which simplify extracting
 	// metrics in future
-	private Map<KinesisOperationType, List<GetMetricStatisticsRequest>> cloudwatchRequestTemplates = new HashMap<>();
+	private final Map<KinesisOperationType, List<GetMetricStatisticsRequest>> cloudwatchRequestTemplates = new HashMap<>();
 
 	public StreamMetricManager(String streamName, List<KinesisOperationType> types, AmazonCloudWatch cloudWatchClient,
 			AmazonKinesisClient kinesisClient) {

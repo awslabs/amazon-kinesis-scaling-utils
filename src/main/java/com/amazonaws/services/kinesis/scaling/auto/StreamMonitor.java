@@ -53,13 +53,13 @@ public class StreamMonitor implements Runnable {
 
 	public static final int CLOUDWATCH_PERIOD = 60;
 
-	private AutoscalingConfiguration config;
+	private final AutoscalingConfiguration config;
 
 	private volatile boolean keepRunning = true;
 
-	private DateTime lastScaleDown = null;
+	private DateTime lastScaleDown;
 
-	private StreamScaler scaler = null;
+	private final StreamScaler scaler;
 
 	private Exception exception;
 

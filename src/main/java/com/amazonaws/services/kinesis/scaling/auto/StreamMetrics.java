@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class StreamMetrics {
-	private KinesisOperationType type;
+	private final KinesisOperationType type;
 
 	public StreamMetrics(KinesisOperationType type) {
 		this.type = type;

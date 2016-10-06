@@ -28,11 +28,11 @@ import com.amazonaws.services.kinesis.model.ResourceInUseException;
  * open shard, and it's lower and higher neighbours by partition hash value
  */
 public class AdjacentShards {
-	private String streamName;
+	private final String streamName;
 
-	private ShardHashInfo lowerShard;
+	private final ShardHashInfo lowerShard;
 
-	private ShardHashInfo higherShard;
+	private final ShardHashInfo higherShard;
 
 	public AdjacentShards(String streamName, ShardHashInfo lower, ShardHashInfo higher) throws Exception {
 		// ensure that the shards are adjacent

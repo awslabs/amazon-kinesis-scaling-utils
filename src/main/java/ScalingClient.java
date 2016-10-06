@@ -45,7 +45,7 @@ import com.amazonaws.services.kinesis.scaling.StreamScaler.ScalingAction;
  * Stream exists
  */
 public class ScalingClient {
-	private StreamScaler scaler = null;
+	private StreamScaler scaler;
 
 	/**
 	 * Configuration name to be used for the Stream

@@ -29,7 +29,7 @@ public class ScalingOperationReport {
 	private int operationsMade;
 	private ScaleDirection scaleDirection;
 	private ScalingCompletionStatus endStatus;
-	private ObjectMapper mapper = new ObjectMapper();
+	private final ObjectMapper mapper = new ObjectMapper();
 
 	public ScalingOperationReport(ScalingCompletionStatus endStatus, Map<String, ShardHashInfo> report) {
 		this(endStatus, report, 0, ScaleDirection.NONE);
