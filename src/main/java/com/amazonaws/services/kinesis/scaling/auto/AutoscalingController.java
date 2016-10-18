@@ -34,8 +34,7 @@ public class AutoscalingController implements Runnable {
 
 	public static final String CONFIG_URL_PARAM = "config-file-url";
 
-	private static final Log LOG = LogFactory
-			.getLog(AutoscalingController.class);
+	private static final Log LOG = LogFactory.getLog(AutoscalingController.class);
 
 	// configurations we're responsible for
 	private AutoscalingConfiguration[] config;
@@ -46,7 +45,7 @@ public class AutoscalingController implements Runnable {
 	private Map<Integer, Future<?>> monitorFutures = new HashMap<>();
 
 	// set up the executor thread pool
-	private ExecutorService executor = Executors.newFixedThreadPool(20);
+	private ExecutorService executor;
 
 	private static AutoscalingController controller;
 
@@ -57,10 +56,10 @@ public class AutoscalingController implements Runnable {
 
 	private AutoscalingController(AutoscalingConfiguration[] config) {
 		this.config = config;
+		this.executor = Executors.newFixedThreadPool(this.config.length);
 	}
 
-	public static AutoscalingController getInstance()
-			throws InvalidConfigurationException {
+	public static AutoscalingController getInstance() throws InvalidConfigurationException {
 		if (controller != null) {
 			return controller;
 		} else {
@@ -72,26 +71,22 @@ public class AutoscalingController implements Runnable {
 				try {
 					// read the json config into an array of autoscaling
 					// configurations
-					AutoscalingConfiguration[] config = AutoscalingConfiguration
-							.loadFromURL(configPath);
+					AutoscalingConfiguration[] config = AutoscalingConfiguration.loadFromURL(configPath);
 
 					controller = getInstance(config);
 				} catch (Exception e) {
 					LOG.error(e.getMessage(), e);
 				}
 			} else {
-				throw new InvalidConfigurationException(
-						String.format(
-								"Unable to instantiate AutoscalingController without System Property %s",
-								CONFIG_URL_PARAM));
+				throw new InvalidConfigurationException(String.format(
+						"Unable to instantiate AutoscalingController without System Property %s", CONFIG_URL_PARAM));
 			}
 
 			return controller;
 		}
 	}
 
-	public static AutoscalingController getInstance(
-			AutoscalingConfiguration[] config) throws Exception {
+	public static AutoscalingController getInstance(AutoscalingConfiguration[] config) throws Exception {
 		if (controller != null) {
 			return controller;
 		} else {
@@ -107,14 +102,12 @@ public class AutoscalingController implements Runnable {
 	public void stopAll() throws Exception {
 		for (Map.Entry<Integer, StreamMonitor> entry : runningMonitors.entrySet()) {
 			StreamMonitor monitor = entry.getValue();
-			LOG.info("Stopping Stream Monitor: "
-					+ monitor.getConfig().getStreamName() + " ...");
+			LOG.info("Stopping Stream Monitor: " + monitor.getConfig().getStreamName() + " ...");
 			monitor.stop();
 			// block until the Future returns that the Stream Monitor has
 			// stopped
 			monitorFutures.get(entry.getKey()).get();
-			LOG.info("Stream Monitor: " + monitor.getConfig().getStreamName()
-					+ " stopped");
+			LOG.info("Stream Monitor: " + monitor.getConfig().getStreamName() + " stopped");
 		}
 	}
 
@@ -122,13 +115,12 @@ public class AutoscalingController implements Runnable {
 		// run all the configured monitors in a thread pool
 		try {
 			int i = 0;
-			for (AutoscalingConfiguration c : this.config) {
+			for (AutoscalingConfiguration streamConfig : this.config) {
 				StreamMonitor monitor;
 				try {
-					LOG.info(String
-							.format("AutoscalingController creating Stream Monitor for Stream %s",
-									c.getStreamName()));
-					monitor = new StreamMonitor(c, executor);
+					LOG.info(String.format("AutoscalingController creating Stream Monitor for Stream %s",
+							streamConfig.getStreamName()));
+					monitor = new StreamMonitor(streamConfig);
 					runningMonitors.put(i, monitor);
 					monitorFutures.put(i, executor.submit(monitor));
 					i++;
@@ -145,8 +137,8 @@ public class AutoscalingController implements Runnable {
 					} else {
 						if (entry.getValue().isDone()) {
 							if (runningMonitors.get(entry.getKey()).getException() != null) {
-								throw new InterruptedException(runningMonitors
-										.get(entry.getKey()).getException().getMessage());
+								throw new InterruptedException(
+										runningMonitors.get(entry.getKey()).getException().getMessage());
 							}
 						}
 					}

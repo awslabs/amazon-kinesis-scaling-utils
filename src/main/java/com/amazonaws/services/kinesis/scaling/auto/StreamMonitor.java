@@ -69,7 +69,7 @@ public class StreamMonitor implements Runnable {
 		this.scaler = scaler;
 	}
 
-	public StreamMonitor(AutoscalingConfiguration config, ExecutorService executor) throws Exception {
+	public StreamMonitor(AutoscalingConfiguration config) throws Exception {
 		this.config = config;
 		Region setRegion = Region.getRegion(Regions.fromName(this.config.getRegion()));
 		this.scaler = new StreamScaler(setRegion);
