@@ -104,7 +104,8 @@ public class StreamMonitor implements Runnable {
 		// (PUT, GET)
 		Map<KinesisOperationType, ScaleDirection> scaleVotes = new HashMap<>();
 
-		for (Map.Entry<KinesisOperationType, Map<StreamMetric, Map<Datapoint, Double>>> entry : currentUtilisationMetrics.entrySet()) {
+		for (Map.Entry<KinesisOperationType, Map<StreamMetric, Map<Datapoint, Double>>> entry : currentUtilisationMetrics
+				.entrySet()) {
 			// set the default scaling vote to 'do nothing'
 			scaleVotes.put(entry.getKey(), ScaleDirection.NONE);
 
@@ -125,8 +126,7 @@ public class StreamMonitor implements Runnable {
 
 				Map<Datapoint, Double> metrics = new HashMap<>();
 
-				if (!currentUtilisationMetrics.containsKey(entry.getKey())
-						|| !entry.getValue().containsKey(metric)) {
+				if (!currentUtilisationMetrics.containsKey(entry.getKey()) || !entry.getValue().containsKey(metric)) {
 					// we have no samples for this type of metric which is ok -
 					// they'll later be counted as low metrics
 				} else {
@@ -157,12 +157,12 @@ public class StreamMonitor implements Runnable {
 					// if the pct for the datapoint exceeds or is below the
 					// thresholds, then add low/high samples
 					if (currentPct > new Double(this.config.getScaleUp().getScaleThresholdPct()) / 100) {
-						LOG.debug(String.format("%s %s: Cached High Alarm Condition for %.2f %s/Second (%.2f%%)", entry.getKey(),
-								metric, currentMax, metric, currentPct * 100));
+						LOG.debug(String.format("%s %s: Cached High Alarm Condition for %.2f %s/Second (%.2f%%)",
+								entry.getKey(), metric, currentMax, metric, currentPct * 100));
 						highSamples++;
 					} else if (currentPct < new Double(this.config.getScaleDown().getScaleThresholdPct()) / 100) {
-						LOG.debug(String.format("%s %s: Cached Low Alarm Condition for %.2f %s/Second (%.2f%%)", entry.getKey(),
-								metric, currentMax, metric, currentPct * 100));
+						LOG.debug(String.format("%s %s: Cached Low Alarm Condition for %.2f %s/Second (%.2f%%)",
+								entry.getKey(), metric, currentMax, metric, currentPct * 100));
 						lowSamples++;
 					}
 				}
@@ -221,8 +221,8 @@ public class StreamMonitor implements Runnable {
 			}
 
 			LOG.info(String.format(
-					"Will decide scaling action based on metric %s[%s] due to higher utilisation metric %.2f%%", entry.getKey(),
-					higherUtilisationMetric, higherUtilisationPct * 100));
+					"Will decide scaling action based on metric %s[%s] due to higher utilisation metric %.2f%%",
+					entry.getKey(), higherUtilisationMetric, higherUtilisationPct * 100));
 
 			if (perMetricSamples.get(higherUtilisationMetric).getValue0() >= config.getScaleUp().getScaleAfterMins()) {
 				scaleVotes.put(entry.getKey(), ScaleDirection.UP);
@@ -255,6 +255,8 @@ public class StreamMonitor implements Runnable {
 		}
 
 		try {
+			int currentShardCount = this.scaler.getOpenShardCount(this.config.getStreamName());
+
 			// if the metric stats indicate a scale up or down, then do the
 			// action
 			if (finalScaleDirection.equals(ScaleDirection.UP)) {
@@ -268,13 +270,15 @@ public class StreamMonitor implements Runnable {
 						this.config.getScaleOnOperations().toString(), this.config.getScaleUp().getScaleThresholdPct(),
 						this.config.getScaleUp().getScaleAfterMins()));
 
+				// TODO migrate this block to UpdateShardCount API
 				if (scaleUpCount != null) {
-					report = this.scaler.scaleUp(this.config.getStreamName(), scaleUpCount, this.config.getMinShards(),
-							this.config.getMaxShards());
+					report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
+							currentShardCount + scaleUpCount, this.config.getMinShards(), this.config.getMaxShards());
 				} else {
-					report = this.scaler.scaleUp(this.config.getStreamName(),
-							new Double(this.config.getScaleUp().getScalePct()) / 100, this.config.getMinShards(),
-							this.config.getMaxShards());
+					report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
+							new Double(currentShardCount * (new Double(this.config.getScaleUp().getScalePct()) / 100))
+									.intValue(),
+							this.config.getMinShards(), this.config.getMaxShards());
 
 				}
 
@@ -301,11 +305,13 @@ public class StreamMonitor implements Runnable {
 							this.config.getScaleDown().getScaleAfterMins()));
 					try {
 						if (scaleDownCount != null) {
-							report = this.scaler.scaleDown(this.config.getStreamName(), scaleDownCount,
-									this.config.getMinShards(), this.config.getMaxShards());
+							report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
+									currentShardCount - scaleDownCount, this.config.getMinShards(),
+									this.config.getMaxShards());
 						} else {
-							report = this.scaler.scaleDown(this.config.getStreamName(),
-									new Double(this.config.getScaleDown().getScalePct()) / 100,
+							report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
+									new Double(currentShardCount
+											- (new Double(this.config.getScaleDown().getScalePct()) / 100)).intValue(),
 									this.config.getMinShards(), this.config.getMaxShards());
 						}
 

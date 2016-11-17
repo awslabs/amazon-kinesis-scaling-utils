@@ -19,7 +19,6 @@ package com.amazonaws.services.kinesis.scaling;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Stack;
 
 import org.apache.commons.logging.Log;
@@ -32,6 +31,8 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
+import com.amazonaws.services.kinesis.model.ScalingType;
+import com.amazonaws.services.kinesis.model.UpdateShardCountRequest;
 
 /**
  * Utility for scaling a Kinesis Stream. Places a priority on eventual balancing
@@ -280,11 +281,15 @@ public class StreamScaler {
 				new Double(estRemaining).intValue()));
 	}
 
+	public int getOpenShardCount(String streamName) throws Exception {
+		return StreamScalingUtils.getOpenShardCount(this.kinesisClient, streamName);
+	}
+
 	private Stack<ShardHashInfo> getOpenShardStack(String streamName) throws Exception {
 		// populate the stack with the current set of shards
 		Stack<ShardHashInfo> shardStack = new Stack<>();
 		List<ShardHashInfo> shards = new ArrayList<>(
-				StreamScalingUtils.getOpenShards(kinesisClient, streamName, SortOrder.DESCENDING, null).values());
+				StreamScalingUtils.getOpenShards(this.kinesisClient, streamName, SortOrder.DESCENDING, null).values());
 		for (ShardHashInfo s : shards) {
 			shardStack.push(s);
 		}
@@ -455,5 +460,30 @@ public class StreamScaler {
 
 		return scaleStream(streamName, originalShardCount, targetShards, targetPct, operationsMade, shardsCompleted,
 				startTime, getOpenShardStack(streamName), minShards, maxShards);
+	}
+
+	public ScalingOperationReport updateShardCount(String streamName, int currentShardCount, int targetShardCount,
+			Integer minShards, Integer maxShards) throws Exception {
+		if (currentShardCount != targetShardCount) {
+			// ensure we dont go below/above min/max
+			if (minShards != null && targetShardCount < minShards) {
+				return reportFor(ScalingCompletionStatus.AlreadyAtMinimum, streamName, 0, ScaleDirection.NONE);
+			} else if (maxShards != null && targetShardCount > maxShards) {
+				return reportFor(ScalingCompletionStatus.AlreadyAtMaximum, streamName, 0, ScaleDirection.NONE);
+			} else {
+				UpdateShardCountRequest req = new UpdateShardCountRequest().withScalingType(ScalingType.UNIFORM_SCALING)
+						.withStreamName(streamName).withTargetShardCount(targetShardCount);
+				this.kinesisClient.updateShardCount(req);
+
+				// block until the stream transitions back to active state
+				StreamScalingUtils.waitForStreamStatus(this.kinesisClient, streamName, "ACTIVE");
+
+				// return the current state of the stream
+				return reportFor(ScalingCompletionStatus.Ok, streamName, 1,
+						(currentShardCount >= targetShardCount ? ScaleDirection.DOWN : ScaleDirection.UP));
+			}
+		} else {
+			return reportFor(ScalingCompletionStatus.NoActionRequired, streamName, 0, ScaleDirection.NONE);
+		}
 	}
 }
