@@ -1,4 +1,5 @@
 /target/
+/.idea/
 .classpath
 .project
 *.prefs
@@ -6,3 +7,7 @@
 .settings/org.eclipse.wst.common.component
 
 .settings/org.eclipse.wst.common.project.facet.core.xml
+
+/json_test/
+
+kinesis-scaling-utils.iml
