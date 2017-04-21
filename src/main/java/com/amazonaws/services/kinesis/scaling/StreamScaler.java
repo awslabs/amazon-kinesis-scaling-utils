@@ -16,14 +16,6 @@
  */
 package com.amazonaws.services.kinesis.scaling;
 
-import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProviderChain;
 import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
@@ -31,9 +23,16 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
-import com.amazonaws.services.kinesis.model.InvalidArgumentException;
+import com.amazonaws.services.kinesis.model.LimitExceededException;
 import com.amazonaws.services.kinesis.model.ScalingType;
 import com.amazonaws.services.kinesis.model.UpdateShardCountRequest;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 
 /**
  * Utility for scaling a Kinesis Stream. Places a priority on eventual balancing
@@ -480,7 +479,7 @@ public class StreamScaler {
 					// return the current state of the stream
 					return reportFor(ScalingCompletionStatus.Ok, streamName, 1,
 							(currentShardCount >= targetShardCount ? ScaleDirection.DOWN : ScaleDirection.UP));
-				} catch (InvalidArgumentException ipe) {
+				} catch (LimitExceededException ipe) {
 					// this will be raised if the scaling operation we are
 					// trying to make is not within the limits of the
 					// UpdateShardCount API
