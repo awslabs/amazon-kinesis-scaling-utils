@@ -32,6 +32,7 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.model.InvalidArgumentException;
+import com.amazonaws.services.kinesis.model.LimitExceededException;
 import com.amazonaws.services.kinesis.model.ScalingType;
 import com.amazonaws.services.kinesis.model.UpdateShardCountRequest;
 
@@ -480,7 +481,7 @@ public class StreamScaler {
 					// return the current state of the stream
 					return reportFor(ScalingCompletionStatus.Ok, streamName, 1,
 							(currentShardCount >= targetShardCount ? ScaleDirection.DOWN : ScaleDirection.UP));
-				} catch (InvalidArgumentException ipe) {
+				} catch (InvalidArgumentException | LimitExceededException ipe) {
 					// this will be raised if the scaling operation we are
 					// trying to make is not within the limits of the
 					// UpdateShardCount API
