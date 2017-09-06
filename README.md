@@ -39,13 +39,17 @@ Here are some useful shortcuts:
 
 ```java -cp dist/KinesisScalingUtils-complete.jar -Dstream-name=MyStream -Dscaling-action=scaleUp -Dcount=3 -Dshard-id=shard-0000000000 -Dregion=eu-west-1 ScalingClient```
 
-##Kinesis Autoscaling##
+##Automatic Autoscaling##
 
 The Kinesis Autoscaling WAR can be deployed as an Elastic Beanstalk application, or to any Java application server, and once configured will monitor the CloudWatch statistics for your Stream and scale up and down as you configure it. Below you can see a graph of how Autoscaling will keep adequate Shard capacity to deal with PUT or GET demand:
 
 ![AutoscalingGraph](https://s3-eu-west-1.amazonaws.com/meyersi-ire-aws/KinesisScalingUtility/img/KinesisAutoscalingGraph.png)
 
-To get started, create a new Elastic Beanstalk application which is a Web Server with a Tomcat predefined configuration. Deploy the WAR by uploading from your local GitHub copy of [dist/KinesisAutoscaling-.9.5.1.war](dist/KinesisAutoscaling-.9.5.1.war).
+To get started, create a new Elastic Beanstalk application which is a Web Server with a Tomcat predefined configuration. Deploy the WAR by uploading from your local GitHub copy of [dist/KinesisAutoscaling-.9.5.1.war](dist/KinesisAutoscaling-.9.5.4.war), or using the following S3 URL's:
+
+| region| S3 Path |
+| ----- | ------- |
+| ap-northeast-1 | https://s3.ap-northeast-1.amazonaws.com/awslabs-code-ap-northeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | ap-northeast-2 | https://s3.ap-northeast-2.amazonaws.com/awslabs-code-ap-northeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | ap-south-1 | https://s3.ap-south-1.amazonaws.com/awslabs-code-ap-south-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | ap-southeast-1 | https://s3.ap-southeast-1.amazonaws.com/awslabs-code-ap-southeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | ap-southeast-2 | https://s3.ap-southeast-2.amazonaws.com/awslabs-code-ap-southeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | ca-central-1 | https://s3.ca-central-1.amazonaws.com/awslabs-code-ca-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | eu-central-1 | https://s3.eu-central-1.amazonaws.com/awslabs-code-eu-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | eu-west-1 | https://s3.eu-west-1.amazonaws.com/awslabs-code-eu-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | eu-west-2 | https://s3.eu-west-2.amazonaws.com/awslabs-code-eu-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | sa-east-1 | https://s3.sa-east-1.amazonaws.com/awslabs-code-sa-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | us-east-1 | https://s3.us-east-1.amazonaws.com/awslabs-code-us-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | us-east-2 | https://s3.us-east-2.amazonaws.com/awslabs-code-us-east-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | us-west-1 | https://s3.us-west-1.amazonaws.com/awslabs-code-us-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | us-west-2 | https://s3.us-west-2.amazonaws.com/awslabs-code-us-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
 
 Once deployed, you must configure the Autoscaling engine by providing a JSON configuration file on an HTTP or S3 URL. The structure of this configuration file is as follows:
 
