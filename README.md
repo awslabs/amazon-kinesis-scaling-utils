@@ -45,7 +45,7 @@ The Kinesis Autoscaling WAR can be deployed as an Elastic Beanstalk application,
 
 ![AutoscalingGraph](https://s3-eu-west-1.amazonaws.com/meyersi-ire-aws/KinesisScalingUtility/img/KinesisAutoscalingGraph.png)
 
-To get started, create a new Elastic Beanstalk application which is a Web Server with a Tomcat predefined configuration. Deploy the WAR by uploading from your local GitHub copy of [dist/KinesisAutoscaling-.9.5.1.war](dist/KinesisAutoscaling-.9.5.4.war), or using the following S3 URL's:
+To get started, create a new Elastic Beanstalk application which is a Web Server with a Tomcat predefined configuration. Deploy the WAR by uploading from your local GitHub copy of [dist/KinesisAutoscaling-.9.5.5.war](dist/KinesisAutoscaling-.9.5.5.war), or using the following S3 URL's:
 
 | region| S3 Path |
 | ----- | ------- |
