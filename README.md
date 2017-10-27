@@ -5,7 +5,7 @@ The Kinesis Scaling Utility is designed to give you the ability to scale Amazon 
 
 You can also deploy the Web Archive to a Java Application Server, and allow Scaling Utils to automatically manage the number of Shards in the Stream based on the observed PUT or GET rate of the stream. 
 
-##Manually Managing your Stream##
+## Manually Managing your Stream ##
 
 You can manually run the Scaling Utility from the command line by calling the ScalingClient with the following syntax.
 
