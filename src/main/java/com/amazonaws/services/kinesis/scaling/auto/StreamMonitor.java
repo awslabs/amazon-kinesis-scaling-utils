@@ -270,7 +270,6 @@ public class StreamMonitor implements Runnable {
 						this.config.getScaleOnOperations().toString(), this.config.getScaleUp().getScaleThresholdPct(),
 						this.config.getScaleUp().getScaleAfterMins()));
 
-				// TODO migrate this block to UpdateShardCount API
 				if (scaleUpCount != null) {
 					report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
 							currentShardCount + scaleUpCount, this.config.getMinShards(), this.config.getMaxShards());

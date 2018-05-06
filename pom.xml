@@ -3,9 +3,9 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.amazonaws</groupId>
 	<artifactId>kinesis-scaling-utils</artifactId>
-	<version>.9.5.5</version>
+	<version>.9.5.6</version>
 	<properties>
-		<sdk-version>1.11.188</sdk-version>
+		<sdk-version>1.11.323</sdk-version>
 	</properties>
 	<licenses>
 		<license>
@@ -138,12 +138,7 @@
 		<dependency>
 			<groupId>joda-time</groupId>
 			<artifactId>joda-time</artifactId>
-			<version>2.2</version>
-		</dependency>
-		<dependency>
-			<groupId>org.javatuples</groupId>
-			<artifactId>javatuples</artifactId>
-			<version>1.2</version>
+			<version>2.9.9</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

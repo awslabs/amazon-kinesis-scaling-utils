@@ -463,6 +463,11 @@ public class StreamScaler {
 	public ScalingOperationReport updateShardCount(String streamName, int currentShardCount, int targetShardCount,
 			Integer minShards, Integer maxShards) throws Exception {
 		if (currentShardCount != targetShardCount) {
+			// catch already at minimum
+			if (targetShardCount < 1) {
+				throw new AlreadyOneShardException();
+			}
+			
 			// ensure we dont go below/above min/max
 			if (minShards != null && targetShardCount < minShards) {
 				return reportFor(ScalingCompletionStatus.AlreadyAtMinimum, streamName, 0, ScaleDirection.NONE);
