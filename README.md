@@ -5,7 +5,7 @@ The Kinesis Scaling Utility is designed to give you the ability to scale Amazon 
 
 You can also deploy the Web Archive to a Java Application Server, and allow Scaling Utils to automatically manage the number of Shards in the Stream based on the observed PUT or GET rate of the stream. 
 
-## Manually Managing your Stream ##
+## Manually Managing your Stream 
 
 You can manually run the Scaling Utility from the command line by calling the ScalingClient with the following syntax.
 
@@ -39,7 +39,7 @@ Here are some useful shortcuts:
 
 ```java -cp dist/KinesisScalingUtils-complete.jar -Dstream-name=MyStream -Dscaling-action=scaleUp -Dcount=3 -Dshard-id=shard-0000000000 -Dregion=eu-west-1 ScalingClient```
 
-##Automatic Autoscaling##
+## Automatic Autoscaling
 
 The Kinesis Autoscaling WAR can be deployed as an Elastic Beanstalk application, or to any Java application server, and once configured will monitor the CloudWatch statistics for your Stream and scale up and down as you configure it. Below you can see a graph of how Autoscaling will keep adequate Shard capacity to deal with PUT or GET demand:
 
@@ -49,7 +49,20 @@ To get started, create a new Elastic Beanstalk application which is a Web Server
 
 | region| S3 Path |
 | ----- | ------- |
-| ap-northeast-1 | https://s3.ap-northeast-1.amazonaws.com/awslabs-code-ap-northeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | ap-northeast-2 | https://s3.ap-northeast-2.amazonaws.com/awslabs-code-ap-northeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | ap-south-1 | https://s3.ap-south-1.amazonaws.com/awslabs-code-ap-south-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | ap-southeast-1 | https://s3.ap-southeast-1.amazonaws.com/awslabs-code-ap-southeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | ap-southeast-2 | https://s3.ap-southeast-2.amazonaws.com/awslabs-code-ap-southeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | ca-central-1 | https://s3.ca-central-1.amazonaws.com/awslabs-code-ca-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | eu-central-1 | https://s3.eu-central-1.amazonaws.com/awslabs-code-eu-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | eu-west-1 | https://s3.eu-west-1.amazonaws.com/awslabs-code-eu-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | eu-west-2 | https://s3.eu-west-2.amazonaws.com/awslabs-code-eu-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | sa-east-1 | https://s3.sa-east-1.amazonaws.com/awslabs-code-sa-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | us-east-1 | https://s3.us-east-1.amazonaws.com/awslabs-code-us-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | us-east-2 | https://s3.us-east-2.amazonaws.com/awslabs-code-us-east-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | us-west-1 | https://s3.us-west-1.amazonaws.com/awslabs-code-us-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | | us-west-2 | https://s3.us-west-2.amazonaws.com/awslabs-code-us-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| ap-northeast-1 | https://s3.ap-northeast-1.amazonaws.com/awslabs-code-ap-northeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| ap-northeast-2 | https://s3.ap-northeast-2.amazonaws.com/awslabs-code-ap-northeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| ap-south-1 | https://s3.ap-south-1.amazonaws.com/awslabs-code-ap-south-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| ap-southeast-1 | https://s3.ap-southeast-1.amazonaws.com/awslabs-code-ap-southeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| ap-southeast-2 | https://s3.ap-southeast-2.amazonaws.com/awslabs-code-ap-southeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| ca-central-1 | https://s3.ca-central-1.amazonaws.com/awslabs-code-ca-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| eu-central-1 | https://s3.eu-central-1.amazonaws.com/awslabs-code-eu-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| eu-west-1 | https://s3.eu-west-1.amazonaws.com/awslabs-code-eu-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| eu-west-2 | https://s3.eu-west-2.amazonaws.com/awslabs-code-eu-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| sa-east-1 | https://s3.sa-east-1.amazonaws.com/awslabs-code-sa-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| us-east-1 | https://s3.us-east-1.amazonaws.com/awslabs-code-us-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| us-east-2 | https://s3.us-east-2.amazonaws.com/awslabs-code-us-east-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| us-west-1 | https://s3.us-west-1.amazonaws.com/awslabs-code-us-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
+| us-west-2 | https://s3.us-west-2.amazonaws.com/awslabs-code-us-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.5.war | 
 
 Once deployed, you must configure the Autoscaling engine by providing a JSON configuration file on an HTTP or S3 URL. The structure of this configuration file is as follows:
 
@@ -60,28 +73,89 @@ Once deployed, you must configure the Autoscaling engine by providing a JSON con
 a streamMonitor object is a definition of an Autoscaling Policy applied to a Kinesis Stream, and this array allows a single Autoscaling Web App to monitor multiple streams. A streamMonitor object is configured by:
 
 ```
-{"streamName":"String - name of the Stream to be Monitored",
- "region":"String - a Valid AWS Region Code, such as us-east-1 or eu-west-1",
- "scaleOnOperation":"List<String> - the types of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
- "minShards":"Integer - the minimum number of Shards to maintain in the Stream at all times",
- "maxShards":"Integer - the maximum number of Shards to have in the Stream regardless of capacity used",
- "refreshShardsNumberAfterMin":"Integer - minutes interval after which the Stream Monitor should refresh the Shard count on the stream, to accomodate manual scaling activities. If unset, defaults to 10 minutes"
- "scaleUp": {
-     "scaleThresholdPct":Integer - at what threshold we should scale up,
-     "scaleAfterMins":Integer - how many minutes above the scaleThresholdPct we should wait before scaling up,
-     "scaleCount":Integer - number of Shards to scale up by (prevails over scalePct),
-     "scalePct":Integer - % of current Stream capacity to scale up by,
-     "notificationARN" : String - the ARN of an SNS Topic to send notifications to after a scaleUp action has been taken
- },
- "scaleDown":{
-     "scaleThresholdPct":Integer - at what threshold we should scale down,
-     "scaleAfterMins":Integer - how many minutes below the scaleThresholdPct we should wait before scaling down,
-     "scaleCount":Integer - number of Shards to scale down by (prevails over scalePct),
-     "scalePct":Integer - % of current Stream capacity to scale down by,
-     "coolOffMins":Integer - number of minutes to wait after a Stream scale down before we scale down again,
-     "notificationARN" : String - the ARN of an SNS Topic to send notifications to after a scaleDown action has been taken
- }
-}
+[
+  {
+   "streamName": "String - name of the Stream to be Monitored",
+   "region": "String - a Valid AWS Region Code, such as us-east-1 or eu-west-1",
+   "scaleOnOperations": "List<String> - the types of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
+   "minShards": Integer - the minimum number of Shards to maintain in the Stream at all times,
+   "maxShards": Integer - the maximum number of Shards to have in the Stream regardless of capacity used,
+   "refreshShardsNumberAfterMin": Integer - minutes interval after which the Stream Monitor should refresh the Shard count on the stream, to accomodate manual scaling activities. If unset, defaults to 10 minutes,
+   "scaleUp": {
+       "scaleThresholdPct": Integer - at what threshold we should scale up,
+       "scaleAfterMins": Integer - how many minutes above the scaleThresholdPct we should wait before scaling up,
+       "scaleCount": Integer - number of Shards to scale up by (prevails over scalePct),
+       "scalePct": Integer - % of current Stream capacity to scale up by,
+       "notificationARN" : "String - the ARN of an SNS Topic to send notifications to after a scaleUp action has been taken"
+   },
+   "scaleDown":{
+       "scaleThresholdPct": Integer - at what threshold we should scale down,
+       "scaleAfterMins": Integer - how many minutes below the scaleThresholdPct we should wait before scaling down,
+       "scaleCount": Integer - number of Shards to scale down by (prevails over scalePct),
+       "scalePct": Integer - % of current Stream capacity to scale down by,
+       "coolOffMins": Integer - number of minutes to wait after a Stream scale down before we scale down again,
+       "notificationARN": "String - the ARN of an SNS Topic to send notifications to after a scaleDown action has been taken"
+   }
+  }
+]
+```
+
+### Json configuration examples
+
+#### Using scale count
+
+```
+[
+    {  
+       "streamName":"streamName",
+       "region":"regionName",
+       "scaleOnOperation": ["PUT","GET"],
+       "minShards":1,
+       "maxShards":16,
+       "refreshShardsNumberAfterMin":5,
+       "scaleUp": {
+            "scaleThresholdPct": 75,
+            "scaleAfterMins": 1,
+            "scaleCount": 1,
+            "notificationARN": "arn:aws:sns:region:accountId:topicName"
+        },
+        "scaleDown": {
+            "scaleThresholdPct": 25,
+            "scaleAfterMins": 1,
+            "scaleCount": 1,
+            "coolOffMins": 1,
+            "notificationARN": "arn:aws:sns:region:accountId:topicName"
+        }
+    }
+]
+```
+
+#### Using scale percentage
+
+```
+[
+    {  
+       "streamName":"streamName",
+       "region":"regionName",
+       "scaleOnOperation": ["PUT","GET"],
+       "minShards":1,
+       "maxShards":16,
+       "refreshShardsNumberAfterMin":5,
+       "scaleUp": {
+            "scaleThresholdPct": 75,
+            "scaleAfterMins": 1,
+            "scalePct": 100,
+            "notificationARN": "arn:aws:sns:region:accountId:topicName"
+        },
+        "scaleDown": {
+            "scaleThresholdPct": 25,
+            "scaleAfterMins": 1,
+            "scalePct": 50,
+            "coolOffMins": 1,
+            "notificationARN": "arn:aws:sns:region:accountId:topicName"
+        }
+    }
+]
 ```
 
 once you've built the Autoscaling configuration required, save it to an HTTP file server or to Amazon S3. Then, access your Elastic Beanstalk application, and select 'Configuration' from the left hand Navigation Menu. Then select the 'Software Configuration' panel, and add a new configuration item called 'config-file-url' that points to the URL of the configuration file. Acceptable formats are 'http://path to file' or 's3://bucket/path to file'. Save the configuration, and then check the application logs for correct operation.
