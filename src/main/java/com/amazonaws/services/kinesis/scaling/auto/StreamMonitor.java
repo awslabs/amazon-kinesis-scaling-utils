@@ -18,11 +18,9 @@ package com.amazonaws.services.kinesis.scaling.auto;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.javatuples.Pair;
 import org.javatuples.Triplet;
 import org.joda.time.DateTime;
 
@@ -282,7 +280,7 @@ public class StreamMonitor implements Runnable {
 				}
 
 				// send SNS notifications
-				if (this.config.getScaleUp().getNotificationARN() != null && this.snsClient != null) {
+				if (report != null && this.config.getScaleUp().getNotificationARN() != null && this.snsClient != null) {
 					StreamScalingUtils.sendNotification(this.snsClient, this.config.getScaleUp().getNotificationARN(),
 							"Kinesis Autoscaling - Scale Up", (report == null ? "No Changes Made" : report.asJson()));
 				}
@@ -317,7 +315,8 @@ public class StreamMonitor implements Runnable {
 						lastScaleDown = new DateTime(System.currentTimeMillis());
 
 						// send SNS notifications
-						if (this.config.getScaleDown().getNotificationARN() != null && this.snsClient != null) {
+						if (report != null && this.config.getScaleDown().getNotificationARN() != null
+								&& this.snsClient != null) {
 							StreamScalingUtils.sendNotification(this.snsClient,
 									this.config.getScaleDown().getNotificationARN(), "Kinesis Autoscaling - Scale Down",
 									(report == null ? "No Changes Made" : report.asJson()));
@@ -350,6 +349,8 @@ public class StreamMonitor implements Runnable {
 		// create a StreamMetricManager object
 		StreamMetricManager metricManager = new StreamMetricManager(this.config.getStreamName(),
 				this.config.getScaleOnOperations(), this.cloudWatchClient, this.kinesisClient);
+
+		LOG.info(String.format("Using Stream Scaler Version %s", StreamScaler.version));
 
 		try {
 			// load the current configured max capacity
@@ -405,7 +406,7 @@ public class StreamMonitor implements Runnable {
 				}
 
 				try {
-					LOG.debug("Sleep");
+					LOG.info(String.format("Next Check Cycle in %s seconds", this.config.getCheckInterval()));
 					Thread.sleep(this.config.getCheckInterval() * 1000);
 				} catch (InterruptedException e) {
 					LOG.error(e.getMessage(), e);

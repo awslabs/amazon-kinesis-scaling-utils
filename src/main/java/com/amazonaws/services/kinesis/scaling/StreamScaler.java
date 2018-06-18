@@ -16,6 +16,14 @@
  */
 package com.amazonaws.services.kinesis.scaling;
 
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProviderChain;
 import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
@@ -27,13 +35,6 @@ import com.amazonaws.services.kinesis.model.InvalidArgumentException;
 import com.amazonaws.services.kinesis.model.LimitExceededException;
 import com.amazonaws.services.kinesis.model.ScalingType;
 import com.amazonaws.services.kinesis.model.UpdateShardCountRequest;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
 
 /**
  * Utility for scaling a Kinesis Stream. Places a priority on eventual balancing
@@ -59,7 +60,7 @@ public class StreamScaler {
 
 	private final String AWSApplication = "KinesisScalingUtility";
 
-	private final String version = ".9.5.1-beta-1";
+	public static final String version = ".9.5.7";
 
 	private final NumberFormat pctFormat = NumberFormat.getPercentInstance();
 
@@ -467,7 +468,7 @@ public class StreamScaler {
 			if (targetShardCount < 1) {
 				throw new AlreadyOneShardException();
 			}
-			
+
 			// ensure we dont go below/above min/max
 			if (minShards != null && targetShardCount < minShards) {
 				return reportFor(ScalingCompletionStatus.AlreadyAtMinimum, streamName, 0, ScaleDirection.NONE);
@@ -479,7 +480,9 @@ public class StreamScaler {
 							.withScalingType(ScalingType.UNIFORM_SCALING).withStreamName(streamName)
 							.withTargetShardCount(targetShardCount);
 					this.kinesisClient.updateShardCount(req);
+
 					// block until the stream transitions back to active state
+					LOG.info("Waiting for Stream to transition back to Active Status");
 					StreamScalingUtils.waitForStreamStatus(this.kinesisClient, streamName, "ACTIVE");
 
 					// return the current state of the stream
@@ -498,6 +501,8 @@ public class StreamScaler {
 				}
 			}
 		} else {
+			LOG.info(String.format("No Scaling Action being taken as current and target Shard count = %s",
+					currentShardCount));
 			return reportFor(ScalingCompletionStatus.NoActionRequired, streamName, 0, ScaleDirection.NONE);
 		}
 	}

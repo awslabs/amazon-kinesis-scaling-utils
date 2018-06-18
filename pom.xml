@@ -3,9 +3,9 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.amazonaws</groupId>
 	<artifactId>kinesis-scaling-utils</artifactId>
-	<version>.9.5.6</version>
+	<version>.9.5.7</version>
 	<properties>
-		<sdk-version>1.11.323</sdk-version>
+		<sdk-version>1.11.349</sdk-version>
 	</properties>
 	<licenses>
 		<license>
@@ -150,6 +150,11 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
 			<version>2.7.4</version>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.12</version>
 		</dependency>
 	</dependencies>
 	<url>https://github.com/awslabs/amazon-kinesis-scaling-utils</url>
