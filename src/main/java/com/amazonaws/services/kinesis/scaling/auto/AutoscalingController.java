@@ -16,6 +16,7 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
