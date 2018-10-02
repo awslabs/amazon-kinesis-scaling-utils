@@ -3,5 +3,5 @@ COPY pom.xml .
 RUN mvn dependency:go-offline
 COPY . .
 RUN mvn install -DskipTests=true -Dlicense.skip=true
-ENTRYPOINT ["java", "-cp", "/dist/KinesisScalingUtils-.9.5.4-complete.jar"]
+ENTRYPOINT ["java", "-cp", "/dist/KinesisScalingUtils-.9.5.7-complete.jar"]
     	
