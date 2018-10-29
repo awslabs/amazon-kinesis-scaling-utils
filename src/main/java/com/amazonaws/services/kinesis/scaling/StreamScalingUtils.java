@@ -152,6 +152,20 @@ public class StreamScalingUtils {
 
 	}
 
+	public static ListShardsResult listShardsFromToken(final AmazonKinesis kinesisClient,
+		     final String streamName, final String nextToken) throws Exception {
+
+		KinesisOperation list = new KinesisOperation() {
+			public Object run(AmazonKinesis client) {
+				ListShardsResult result = client.listShards(new ListShardsRequest().withNextToken(nextToken));
+
+				return result;
+			}
+		};
+		return (ListShardsResult) doOperation(kinesisClient, list, streamName, DESCRIBE_RETRIES, false);
+
+	}
+
 	public static void splitShard(final AmazonKinesis kinesisClient, final String streamName, final String shardId,
 			final BigInteger targetHash, final boolean waitForActive) throws Exception {
 		KinesisOperation split = new KinesisOperation() {
@@ -253,17 +267,20 @@ public class StreamScalingUtils {
 
 		// load all shards on the stream
 		List<Shard> allShards = new ArrayList<>();
-
+		// Get the first batch of shards
 		do {
 			listShardsResult = listShards(kinesisClient, streamName, lastShardId);
-			for (Shard shard : listShardsResult.getShards()) {
-				allShards.add(shard);
-				lastShardId = shard.getShardId();
-			}
+			allShards.addAll(listShardsResult.getShards());
 		} while (/* old describeStream call used to return nothing sometimes, being defensive with ListShards
 				responses as well*/
-				listShardsResult == null || listShardsResult.getShards() == null ||
-				listShardsResult.getShards().size() == 0 || listShardsResult.getNextToken() != null);
+				listShardsResult.getShards() == null || listShardsResult.getShards().size() == 0);
+
+		// Get the rest by using the returned nextToken
+		while (listShardsResult.getNextToken() != null)
+		{
+			listShardsResult = listShardsFromToken(kinesisClient, streamName, listShardsResult.getNextToken());
+			allShards.addAll(listShardsResult.getShards());
+		}
 
 		// load all the open shards on the Stream and sort if required
 		for (Shard shard : allShards) {
