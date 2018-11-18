@@ -67,7 +67,7 @@ public class StreamScalingUtils {
 	 * generalisations about allocation of keyspace to shards. For example, when we
 	 * have a stream of 3 shards, we'll have shards of 33, 33, and 34% of the
 	 * keyspace - these must all be treated as equal
-	 * 
+	 *
 	 * @param a
 	 * @param b
 	 * @return
@@ -94,7 +94,7 @@ public class StreamScalingUtils {
 
 	/**
 	 * Wait for a Stream to become available or transition to the indicated status
-	 * 
+	 *
 	 * @param streamName
 	 * @param status
 	 * @throws Exception
@@ -120,11 +120,12 @@ public class StreamScalingUtils {
 
 	/**
 	 * Get the status of a Stream
-	 * 
+	 *
 	 * @param streamName
 	 * @return
 	 */
 	protected static String getStreamStatus(AmazonKinesis kinesisClient, String streamName) throws Exception {
+
 		return describeStream(kinesisClient, streamName).getStreamStatus();
 	}
 
@@ -268,7 +269,7 @@ public class StreamScalingUtils {
 
 	/**
 	 * Get a list of all Open shards ordered by their start hash
-	 * 
+	 *
 	 * @param streamName
 	 * @return A Map of only Open Shards indexed by the Shard ID
 	 */
