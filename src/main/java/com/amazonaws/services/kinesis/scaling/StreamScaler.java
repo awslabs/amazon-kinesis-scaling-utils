@@ -123,15 +123,15 @@ public class StreamScaler {
 	 * @return A Map of the final state of the Stream after Sharding, indexed by
 	 *         Shard Name * @throws Exception
 	 */
-	public ScalingOperationReport scaleUp(String streamName, int byShardCount, Integer minShards, Integer maxShards)
-			throws Exception {
+	public ScalingOperationReport scaleUp(String streamName, int byShardCount, Integer minShards, Integer maxShards,
+			boolean waitForCompletion) throws Exception {
 		if (byShardCount <= 0) {
 			throw new Exception("Shard Count must be a positive number");
 		}
 
 		int currentSize = StreamScalingUtils.getOpenShardCount(kinesisClient, streamName);
 
-		return doResize(streamName, currentSize + byShardCount, minShards, maxShards);
+		return doResize(streamName, currentSize + byShardCount, minShards, maxShards, waitForCompletion);
 	}
 
 	public ScalingOperationReport scaleUp(String streamName, String shardId, int byShardCount, Integer minShards,
@@ -156,8 +156,8 @@ public class StreamScaler {
 	 * @return A Map of the final state of the Stream after Sharding, indexed by
 	 *         Shard Name * @throws Exception
 	 */
-	public ScalingOperationReport scaleDown(String streamName, int byShardCount, Integer minShards, Integer maxShards)
-			throws Exception {
+	public ScalingOperationReport scaleDown(String streamName, int byShardCount, Integer minShards, Integer maxShards,
+			boolean waitForCompletion) throws Exception {
 		if (byShardCount <= 0) {
 			throw new Exception(streamName + ": Shard Count must be a positive number");
 		}
@@ -168,7 +168,7 @@ public class StreamScaler {
 			throw new AlreadyOneShardException();
 		}
 
-		return doResize(streamName, Math.max(currentSize - byShardCount, 1), minShards, maxShards);
+		return doResize(streamName, Math.max(currentSize - byShardCount, 1), minShards, maxShards, waitForCompletion);
 	}
 
 	/**
@@ -181,8 +181,8 @@ public class StreamScaler {
 	 * @return A Map of the final state of the Stream after Sharding, indexed by
 	 *         Shard Name * @throws Exception
 	 */
-	public ScalingOperationReport scaleDown(String streamName, double byPct, Integer minShards, Integer maxShards)
-			throws Exception {
+	public ScalingOperationReport scaleDown(String streamName, double byPct, Integer minShards, Integer maxShards,
+			boolean waitForCompletion) throws Exception {
 		double scalePct = byPct;
 		if (scalePct < 0)
 			throw new Exception(streamName + ": Scaling Percent should be a positive number");
@@ -196,7 +196,7 @@ public class StreamScaler {
 		int newSize = Math.max(new Double(Math.ceil(currentSize - Math.max(currentSize * scalePct, 1))).intValue(), 1);
 
 		if (newSize > 0) {
-			return doResize(streamName, newSize, minShards, maxShards);
+			return doResize(streamName, newSize, minShards, maxShards, waitForCompletion);
 		} else {
 			return null;
 		}
@@ -213,8 +213,8 @@ public class StreamScaler {
 	 * @return A Map of the final state of the Stream after Sharding, indexed by
 	 *         Shard Name * @throws Exception
 	 */
-	public ScalingOperationReport scaleUp(String streamName, double byPct, Integer minShards, Integer maxShards)
-			throws Exception {
+	public ScalingOperationReport scaleUp(String streamName, double byPct, Integer minShards, Integer maxShards,
+			boolean waitForCompletion) throws Exception {
 		if (byPct < 0)
 			throw new Exception(streamName + ": Scaling Percent should be a positive number");
 		int currentSize = StreamScalingUtils.getOpenShardCount(kinesisClient, streamName);
@@ -222,7 +222,7 @@ public class StreamScaler {
 		int newSize = new Double(Math.ceil(currentSize + (currentSize * byPct))).intValue();
 
 		if (newSize > 0) {
-			return doResize(streamName, newSize, minShards, maxShards);
+			return doResize(streamName, newSize, minShards, maxShards, waitForCompletion);
 		} else {
 			return null;
 		}
@@ -239,9 +239,9 @@ public class StreamScaler {
 	 *         Shard Name
 	 * @throws Exception
 	 */
-	public ScalingOperationReport resize(String streamName, int targetShardCount, Integer minShards, Integer maxShards)
-			throws Exception {
-		return doResize(streamName, targetShardCount, minShards, maxShards);
+	public ScalingOperationReport resize(String streamName, int targetShardCount, Integer minShards, Integer maxShards,
+			boolean waitForCompletion) throws Exception {
+		return doResize(streamName, targetShardCount, minShards, maxShards, waitForCompletion);
 	}
 
 	public String report(ScalingCompletionStatus endStatus, String streamName) throws Exception {
@@ -257,17 +257,13 @@ public class StreamScaler {
 	}
 
 	private ScalingOperationReport doResize(String streamName, int targetShardCount, Integer minShards,
-			Integer maxShards) throws Exception {
+			Integer maxShards, boolean waitForCompletion) throws Exception {
 		if (!(targetShardCount > 0)) {
 			throw new Exception(streamName + ": Cannot resize to 0 or negative Shard Count");
 		}
-		int operationsMade = 0;
 		final int currentShards = StreamScalingUtils.getOpenShardCount(kinesisClient, streamName);
-		int shardsCompleted = 0;
-		final long startTime = System.currentTimeMillis();
 
-		return scaleStream(streamName, currentShards, targetShardCount, operationsMade, shardsCompleted, startTime,
-				minShards, maxShards);
+		return updateShardCount(streamName, currentShards, targetShardCount, minShards, maxShards, waitForCompletion);
 	}
 
 	private void reportProgress(String streamName, int shardsCompleted, int currentCount, int shardsRemaining,
@@ -462,7 +458,7 @@ public class StreamScaler {
 	}
 
 	public ScalingOperationReport updateShardCount(String streamName, int currentShardCount, int targetShardCount,
-			Integer minShards, Integer maxShards) throws Exception {
+			Integer minShards, Integer maxShards, boolean waitForCompletion) throws Exception {
 		if (currentShardCount != targetShardCount) {
 			// catch already at minimum
 			if (targetShardCount < 1) {
@@ -476,6 +472,8 @@ public class StreamScaler {
 				return reportFor(ScalingCompletionStatus.AlreadyAtMaximum, streamName, 0, ScaleDirection.NONE);
 			} else {
 				try {
+					LOG.info(String.format("Updating Stream %s Shard Count to %s", streamName, targetShardCount));
+
 					UpdateShardCountRequest req = new UpdateShardCountRequest()
 							.withScalingType(ScalingType.UNIFORM_SCALING).withStreamName(streamName)
 							.withTargetShardCount(targetShardCount);
@@ -486,8 +484,12 @@ public class StreamScaler {
 					StreamScalingUtils.waitForStreamStatus(this.kinesisClient, streamName, "ACTIVE");
 
 					// return the current state of the stream
-					return reportFor(ScalingCompletionStatus.Ok, streamName, 1,
-							(currentShardCount >= targetShardCount ? ScaleDirection.DOWN : ScaleDirection.UP));
+					if (waitForCompletion) {
+						return reportFor(ScalingCompletionStatus.Ok, streamName, 1,
+								(currentShardCount >= targetShardCount ? ScaleDirection.DOWN : ScaleDirection.UP));
+					} else {
+						return null;
+					}
 				} catch (InvalidArgumentException | LimitExceededException ipe) {
 					// this will be raised if the scaling operation we are
 					// trying to make is not within the limits of the
@@ -496,6 +498,8 @@ public class StreamScaler {
 					//
 					// so now we'll default back to the split/merge way
 					// return the current state of the stream
+					LOG.info("UpdateShardCount API Limit Exceeded. Falling back to manual scaling");
+
 					return scaleStream(streamName, currentShardCount, targetShardCount, 0, 0,
 							System.currentTimeMillis(), minShards, maxShards);
 				}

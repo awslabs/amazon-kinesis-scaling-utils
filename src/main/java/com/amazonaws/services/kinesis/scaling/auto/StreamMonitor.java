@@ -270,12 +270,13 @@ public class StreamMonitor implements Runnable {
 
 				if (scaleUpCount != null) {
 					report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
-							currentShardCount + scaleUpCount, this.config.getMinShards(), this.config.getMaxShards());
+							currentShardCount + scaleUpCount, this.config.getMinShards(), this.config.getMaxShards(),
+							false);
 				} else {
 					report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
 							new Double(currentShardCount * (new Double(this.config.getScaleUp().getScalePct()) / 100))
 									.intValue(),
-							this.config.getMinShards(), this.config.getMaxShards());
+							this.config.getMinShards(), this.config.getMaxShards(), false);
 
 				}
 
@@ -304,12 +305,12 @@ public class StreamMonitor implements Runnable {
 						if (scaleDownCount != null) {
 							report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
 									currentShardCount - scaleDownCount, this.config.getMinShards(),
-									this.config.getMaxShards());
+									this.config.getMaxShards(), false);
 						} else {
 							report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
 									new Double(currentShardCount
 											- (new Double(this.config.getScaleDown().getScalePct()) / 100)).intValue(),
-									this.config.getMinShards(), this.config.getMaxShards());
+									this.config.getMinShards(), this.config.getMaxShards(), false);
 						}
 
 						lastScaleDown = new DateTime(System.currentTimeMillis());

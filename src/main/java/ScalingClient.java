@@ -60,14 +60,14 @@ public class ScalingClient {
 	private StreamScaler.ScaleBy scaleBy;
 
 	/**
-	 * Configuration name to be used when you want to scale by an absolute
-	 * number of Shards
+	 * Configuration name to be used when you want to scale by an absolute number of
+	 * Shards
 	 */
 	public static final String SCALE_COUNT_PARAM = "count";
 
 	/**
-	 * Configuration name to be used when you want to scale by a percentage of
-	 * the current number of Shards
+	 * Configuration name to be used when you want to scale by a percentage of the
+	 * current number of Shards
 	 */
 	public static final String SCALE_PCT_PARAM = "pct";
 
@@ -78,6 +78,8 @@ public class ScalingClient {
 	public static final String MIN_SHARDS_PARAM = "min-shards";
 
 	public static final String MAX_SHARDS_PARAM = "max-shards";
+
+	public static final String WAIT_FOR_COMPLETION = "wait-for-completion";
 
 	private String streamName;
 
@@ -94,6 +96,8 @@ public class ScalingClient {
 	private Integer minShards;
 
 	private Integer maxShards;
+
+	private boolean doWait = true;
 
 	private void loadParams() throws Exception {
 		if (System.getProperty(STREAM_PARAM) == null) {
@@ -118,6 +122,10 @@ public class ScalingClient {
 
 		if (System.getProperty(REGION_PARAM) != null) {
 			this.region = Region.getRegion(Regions.fromName(System.getProperty(REGION_PARAM)));
+		}
+
+		if (System.getProperty(WAIT_FOR_COMPLETION) != null) {
+			this.doWait = Boolean.parseBoolean(System.getProperty(WAIT_FOR_COMPLETION));
 		}
 
 		if (this.scalingAction != ScalingAction.report) {
@@ -162,10 +170,10 @@ public class ScalingClient {
 		case scaleUp:
 			switch (this.scaleBy) {
 			case count:
-				report = scaler.scaleUp(this.streamName, this.scaleCount, this.minShards, this.maxShards);
+				report = scaler.scaleUp(this.streamName, this.scaleCount, this.minShards, this.maxShards, this.doWait);
 				break;
 			case pct:
-				report = scaler.scaleUp(this.streamName, this.scalePct, this.minShards, this.maxShards);
+				report = scaler.scaleUp(this.streamName, this.scalePct, this.minShards, this.maxShards, this.doWait);
 				break;
 			default:
 				break;
@@ -174,10 +182,11 @@ public class ScalingClient {
 		case scaleDown:
 			switch (this.scaleBy) {
 			case count:
-				report = scaler.scaleDown(this.streamName, this.scaleCount, this.minShards, this.maxShards);
+				report = scaler.scaleDown(this.streamName, this.scaleCount, this.minShards, this.maxShards,
+						this.doWait);
 				break;
 			case pct:
-				report = scaler.scaleDown(this.streamName, this.scalePct, this.minShards, this.maxShards);
+				report = scaler.scaleDown(this.streamName, this.scalePct, this.minShards, this.maxShards, this.doWait);
 				break;
 			default:
 				break;
@@ -186,18 +195,18 @@ public class ScalingClient {
 		case resize:
 			switch (this.scaleBy) {
 			case count:
-				report = scaler.resize(this.streamName, this.scaleCount, this.minShards, this.maxShards);
+				report = scaler.resize(this.streamName, this.scaleCount, this.minShards, this.maxShards, this.doWait);
 				break;
 			case pct:
 				throw new Exception("Cannot resize by a Percentage");
-				default:
-					break;
+			default:
+				break;
 			}
 			break;
 		case report:
 			report = scaler.reportFor(ScalingCompletionStatus.ReportOnly, this.streamName, 0, ScaleDirection.NONE);
-			default:
-				break;
+		default:
+			break;
 		}
 
 		System.out.println("Scaling Operation Complete");
