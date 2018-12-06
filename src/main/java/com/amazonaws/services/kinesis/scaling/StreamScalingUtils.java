@@ -162,7 +162,7 @@ public class StreamScalingUtils {
 					if (result.getNextToken() == null) {
 						hasMoreResults = false;
 					} else {
-						req.setNextToken(result.getNextToken());
+						req = new ListShardsRequest().withNextToken(result.getNextToken());
 					}
 
 				}
