@@ -17,6 +17,7 @@
 package com.amazonaws.services.kinesis.scaling.auto;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -57,11 +58,11 @@ public class StreamMetricManager {
 	private Set<KinesisOperationType> trackedOperations = new HashSet<>();
 
 	// the current maximum capacity of the stream
-	private Map<KinesisOperationType, StreamMetrics> streamMaxCapacity = new HashMap<>();
+	private Map<KinesisOperationType, StreamMetrics> streamMaxCapacity = new EnumMap<>(KinesisOperationType.class);
 
 	// set of CloudWatch request template objects, which simplify extracting
 	// metrics in future
-	private Map<KinesisOperationType, List<GetMetricStatisticsRequest>> cloudwatchRequestTemplates = new HashMap<>();
+	private Map<KinesisOperationType, List<GetMetricStatisticsRequest>> cloudwatchRequestTemplates = new EnumMap<>(KinesisOperationType.class);
 
 	public StreamMetricManager(String streamName, List<KinesisOperationType> types, AmazonCloudWatch cloudWatchClient,
 			AmazonKinesisClient kinesisClient) {
@@ -134,13 +135,13 @@ public class StreamMetricManager {
 	 */
 	public Map<KinesisOperationType, Map<StreamMetric, Map<Datapoint, Double>>> queryCurrentUtilisationMetrics(
 			int cwSampleDuration, DateTime metricStartTime, DateTime metricEndTime) throws Exception {
-		Map<KinesisOperationType, Map<StreamMetric, Map<Datapoint, Double>>> currentUtilisationMetrics = new HashMap<>();
+		Map<KinesisOperationType, Map<StreamMetric, Map<Datapoint, Double>>> currentUtilisationMetrics = new EnumMap<>(KinesisOperationType.class);
 
 		// seed the current utilisation objects with default Maps to simplify
 		// object creation later
 		for (KinesisOperationType op : this.trackedOperations) {
 			for (StreamMetric m : StreamMetric.values()) {
-				currentUtilisationMetrics.put(op, new HashMap<StreamMetric, Map<Datapoint, Double>>() {
+				currentUtilisationMetrics.put(op, new EnumMap<StreamMetric, Map<Datapoint, Double>>(StreamMetric.class) {
 					{
 						put(m, new HashMap<Datapoint, Double>());
 					}

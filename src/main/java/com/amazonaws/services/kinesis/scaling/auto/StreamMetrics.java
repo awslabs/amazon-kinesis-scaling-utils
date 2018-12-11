@@ -16,6 +16,7 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,7 +27,7 @@ public class StreamMetrics {
 		this.type = type;
 	}
 
-	private final Map<StreamMetric, Integer> metrics = new HashMap<>();
+	private final Map<StreamMetric, Integer> metrics = new EnumMap<>(StreamMetric.class);
 
 	public int put(StreamMetric m, int value) {
 		Integer oldValue = metrics.put(m, value);

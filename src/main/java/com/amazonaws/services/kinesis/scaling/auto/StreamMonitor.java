@@ -16,6 +16,7 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -100,14 +101,14 @@ public class StreamMonitor implements Runnable {
 
 		// for each type of operation that the customer has requested profiling
 		// (PUT, GET)
-		Map<KinesisOperationType, ScaleDirection> scaleVotes = new HashMap<>();
+		Map<KinesisOperationType, ScaleDirection> scaleVotes = new EnumMap<>(KinesisOperationType.class);
 
 		for (Map.Entry<KinesisOperationType, Map<StreamMetric, Map<Datapoint, Double>>> entry : currentUtilisationMetrics
 				.entrySet()) {
 			// set the default scaling vote to 'do nothing'
 			scaleVotes.put(entry.getKey(), ScaleDirection.NONE);
 
-			Map<StreamMetric, Triplet<Integer, Integer, Double>> perMetricSamples = new HashMap<>();
+			Map<StreamMetric, Triplet<Integer, Integer, Double>> perMetricSamples = new EnumMap<>(StreamMetric.class);
 			StreamMetric higherUtilisationMetric;
 			Double higherUtilisationPct;
 
