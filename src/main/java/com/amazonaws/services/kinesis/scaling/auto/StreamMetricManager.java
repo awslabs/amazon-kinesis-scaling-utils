@@ -33,6 +33,9 @@ import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
 import com.amazonaws.services.cloudwatch.model.InternalServiceException;
+import com.amazonaws.services.cloudwatch.model.InvalidParameterCombinationException;
+import com.amazonaws.services.cloudwatch.model.InvalidParameterValueException;
+import com.amazonaws.services.cloudwatch.model.MissingRequiredParameterException;
 import com.amazonaws.services.cloudwatch.model.Statistic;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
@@ -168,7 +171,13 @@ public class StreamMetricManager {
 					try {
 						cloudWatchMetrics = this.cloudWatchClient.getMetricStatistics(req);
 						ok = true;
-					} catch (InternalServiceException e) {
+					} catch (InvalidParameterValueException e) {
+						throw e;
+					} catch (MissingRequiredParameterException e) {
+						throw e;
+					} catch (InvalidParameterCombinationException e) {
+						throw e;
+					} catch (Exception e) {
 						// this is probably just a transient error, so retry
 						// after backoff
 						tryCount++;
