@@ -32,7 +32,6 @@ import com.amazonaws.services.cloudwatch.model.Datapoint;
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
-import com.amazonaws.services.cloudwatch.model.InternalServiceException;
 import com.amazonaws.services.cloudwatch.model.InvalidParameterCombinationException;
 import com.amazonaws.services.cloudwatch.model.InvalidParameterValueException;
 import com.amazonaws.services.cloudwatch.model.MissingRequiredParameterException;
