@@ -153,7 +153,7 @@ public class StreamScalingUtils {
 				List<Shard> shards = new ArrayList<>();
 
 				while (hasMoreResults) {
-					if (shardIdStart != null) {
+					if (shardIdStart != null && req.getNextToken() == null) {
 						req.withExclusiveStartShardId(shardIdStart);
 					}
 					ListShardsResult result = client.listShards(req);
