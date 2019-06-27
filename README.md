@@ -98,6 +98,60 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
 
 once you've built the Autoscaling configuration required, save it to an HTTP file server or to Amazon S3. Then, access your Elastic Beanstalk application, and select 'Configuration' from the left hand Navigation Menu. Then select the 'Software Configuration' panel, and add a new configuration item called 'config-file-url' that points to the URL of the configuration file. Acceptable formats are 'http://path to file' or 's3://bucket/path to file'. Save the configuration, and then check the application logs for correct operation.
 
+### Json Configuration Examples
+
+#### Using scale count
+```
+[
+    {  
+       "streamName":"streamName",
+       "region":"regionName",
+       "scaleOnOperation": ["PUT","GET"],
+       "minShards":1,
+       "maxShards":16,
+       "refreshShardsNumberAfterMin":5,
+       "scaleUp": {
+            "scaleThresholdPct": 75,
+            "scaleAfterMins": 1,
+            "scaleCount": 1,
+            "notificationARN": "arn:aws:sns:region:accountId:topicName"
+        },
+        "scaleDown": {
+            "scaleThresholdPct": 25,
+            "scaleAfterMins": 1,
+            "scaleCount": 1,
+            "coolOffMins": 1,
+            "notificationARN": "arn:aws:sns:region:accountId:topicName"
+        }
+    }
+]
+```
+#### Using scale percentage
+```
+[
+    {  
+       "streamName":"streamName",
+       "region":"regionName",
+       "scaleOnOperation": ["PUT","GET"],
+       "minShards":1,
+       "maxShards":16,
+       "refreshShardsNumberAfterMin":5,
+       "scaleUp": {
+            "scaleThresholdPct": 75,
+            "scaleAfterMins": 1,
+            "scalePct": 100,
+            "notificationARN": "arn:aws:sns:region:accountId:topicName"
+        },
+        "scaleDown": {
+            "scaleThresholdPct": 25,
+            "scaleAfterMins": 1,
+            "scalePct": 50,
+            "coolOffMins": 1,
+            "notificationARN": "arn:aws:sns:region:accountId:topicName"
+        }
+    }
+]
+
 ## Autoscaling Behaviour ##
 
 In version .9.5.0, Autoscaling added the ability to scale on the basis of PUT ___and___ GET utilisation. This change means that you carefully have to consider your actual utilisation of each metric prior to configuring autoscaling with both metrics. For information on how the AutoScaling module will react with both metrics, consider the following table:
