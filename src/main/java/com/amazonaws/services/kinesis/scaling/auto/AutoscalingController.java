@@ -25,6 +25,8 @@ public class AutoscalingController implements Runnable {
 	public static final String CONFIGURATION = "autoscaling-config";
 
 	public static final String CONFIG_URL_PARAM = "config-file-url";
+	
+	public static final String SUPPRESS_ABORT_ON_FATAL = "suppress-abort-on-fatal";
 
 	private static final Log LOG = LogFactory.getLog(AutoscalingController.class);
 
@@ -51,6 +53,18 @@ public class AutoscalingController implements Runnable {
 		this.executor = Executors.newFixedThreadPool(this.config.length);
 	}
 
+	private static void handleFatal(Exception e) {
+		LOG.error("Fatal Exception while loading configuration file");
+		LOG.error(e.getMessage(), e);
+		
+		// exit application unless abort on fatal is set - per Issue 66
+		String suppressExit = System.getProperty(SUPPRESS_ABORT_ON_FATAL);
+		if (suppressExit == null) {
+			LOG.info("Supressing system exit based on environment configuration");
+			System.exit(-1);
+		}
+	}
+	
 	public static AutoscalingController getInstance() throws InvalidConfigurationException {
 		if (controller != null) {
 			return controller;
@@ -67,7 +81,7 @@ public class AutoscalingController implements Runnable {
 
 					controller = getInstance(config);
 				} catch (Exception e) {
-					LOG.error(e.getMessage(), e);
+					handleFatal(e);
 				}
 			} else {
 				throw new InvalidConfigurationException(String.format(
@@ -161,6 +175,7 @@ public class AutoscalingController implements Runnable {
 			AutoscalingController.getInstance().startMonitors();
 		} catch (Exception e) {
 			LOG.error(e.getMessage(), e);
+			handleFatal(e);
 		}
 	}
 
