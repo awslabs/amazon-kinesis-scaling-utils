@@ -7,17 +7,6 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.joda.time.DateTime;
-
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.Datapoint;
 import com.amazonaws.services.cloudwatch.model.Dimension;
@@ -27,8 +16,19 @@ import com.amazonaws.services.cloudwatch.model.InvalidParameterCombinationExcept
 import com.amazonaws.services.cloudwatch.model.InvalidParameterValueException;
 import com.amazonaws.services.cloudwatch.model.MissingRequiredParameterException;
 import com.amazonaws.services.cloudwatch.model.Statistic;
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
+import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.joda.time.DateTime;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The StreamMetricsManager class is responsible for extracting current Stream
@@ -44,7 +44,8 @@ public class StreamMetricManager {
 	public final String CW_NAMESPACE = "AWS/Kinesis";
 	private String streamName;
 	private AmazonCloudWatch cloudWatchClient;
-	private AmazonKinesisClient kinesisClient;
+	private AmazonKinesis kinesisClient;
+	private int cloudWatchPeriod;
 
 	// the set of all Operations that will be tracked in cloudwatch
 	private Set<KinesisOperationType> trackedOperations = new HashSet<>();
@@ -57,11 +58,17 @@ public class StreamMetricManager {
 	private Map<KinesisOperationType, List<GetMetricStatisticsRequest>> cloudwatchRequestTemplates = new HashMap<>();
 
 	public StreamMetricManager(String streamName, List<KinesisOperationType> types, AmazonCloudWatch cloudWatchClient,
-			AmazonKinesisClient kinesisClient) {
+			AmazonKinesis kinesisClient) {
+		this(streamName, StreamMonitor.CLOUDWATCH_PERIOD, types, cloudWatchClient, kinesisClient);
+	}
+
+	public StreamMetricManager(String streamName, int cloudWatchPeriod, List<KinesisOperationType> types, AmazonCloudWatch cloudWatchClient,
+							   AmazonKinesis kinesisClient) {
 		this.streamName = streamName;
 		this.trackedOperations.addAll(types);
 		this.cloudWatchClient = cloudWatchClient;
 		this.kinesisClient = kinesisClient;
+		this.cloudWatchPeriod = cloudWatchPeriod;
 
 		for (KinesisOperationType op : this.trackedOperations) {
 			// create CloudWatch request templates for the information we have
@@ -71,7 +78,7 @@ public class StreamMetricManager {
 
 				cwRequest.withNamespace(CW_NAMESPACE)
 						.withDimensions(new Dimension().withName("StreamName").withValue(this.streamName))
-						.withPeriod(StreamMonitor.CLOUDWATCH_PERIOD).withStatistics(Statistic.Sum)
+						.withPeriod(cloudWatchPeriod).withStatistics(Statistic.Sum)
 						.withMetricName(metricName);
 
 				if (!this.cloudwatchRequestTemplates.containsKey(op)) {
@@ -194,7 +201,7 @@ public class StreamMetricManager {
 					} else {
 						sampleMetric = 0d;
 					}
-					sampleMetric += (d.getSum() / StreamMonitor.CLOUDWATCH_PERIOD);
+					sampleMetric += (d.getSum() / cloudWatchPeriod);
 					metrics.put(d, sampleMetric);
 					currentUtilisationMetrics.get(entry.getKey()).put(metric, metrics);
 				}

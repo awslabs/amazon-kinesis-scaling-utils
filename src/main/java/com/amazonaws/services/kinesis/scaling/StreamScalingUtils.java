@@ -7,20 +7,6 @@
  */
 package com.amazonaws.services.kinesis.scaling;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.model.DescribeStreamSummaryRequest;
@@ -33,6 +19,20 @@ import com.amazonaws.services.kinesis.model.Shard;
 import com.amazonaws.services.kinesis.model.StreamDescriptionSummary;
 import com.amazonaws.services.kinesis.scaling.StreamScaler.SortOrder;
 import com.amazonaws.services.sns.AmazonSNSClient;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class StreamScalingUtils {
 	private static final Log LOG = LogFactory.getLog(StreamScalingUtils.class);
@@ -254,7 +254,7 @@ public class StreamScalingUtils {
 				.compareTo(new BigInteger(o2.getHashKeyRange().getStartingHashKey()));
 	}
 
-	public static int getOpenShardCount(AmazonKinesisClient kinesisClient, String streamName) throws Exception {
+	public static int getOpenShardCount(AmazonKinesis kinesisClient, String streamName) throws Exception {
 		return StreamScalingUtils.describeStream(kinesisClient, streamName).getOpenShardCount();
 	}
 
