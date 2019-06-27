@@ -68,8 +68,8 @@ public class StreamScaler {
 	}
 
 	public StreamScaler(Region region) throws Exception {
-		this(region, new AWSCredentialsProviderChain(
-			new DefaultAWSCredentialsProviderChain(), new ClasspathPropertiesFileCredentialsProvider()));
+		this(region, new AWSCredentialsProviderChain(new DefaultAWSCredentialsProviderChain(),
+				new ClasspathPropertiesFileCredentialsProvider()));
 	}
 
 	public StreamScaler(Region region, AWSCredentialsProvider awsCredentialsProvider) throws Exception {
@@ -215,7 +215,14 @@ public class StreamScaler {
 			throw new Exception(streamName + ": Scaling Percent should be a positive number");
 		int currentSize = StreamScalingUtils.getOpenShardCount(kinesisClient, streamName);
 
-		int newSize = new Double(Math.ceil(currentSize + (currentSize * byPct))).intValue();
+		// if byPct is smaller than 1, assume that the user meant to go larger by that
+		// pct
+		double scalePct = byPct;
+		if (byPct < 1) {
+			scalePct = 1 + byPct;
+		}
+
+		int newSize = new Double(Math.ceil(currentSize + (currentSize * scalePct))).intValue();
 
 		if (newSize > 0) {
 			return doResize(streamName, newSize, minShards, maxShards, waitForCompletion);
