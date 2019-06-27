@@ -3,32 +3,9 @@
  *
  * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
- * Licensed under the Amazon Software License (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *  http://aws.amazon.com/asl/
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.amazonaws.services.kinesis.scaling;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
@@ -42,6 +19,20 @@ import com.amazonaws.services.kinesis.model.Shard;
 import com.amazonaws.services.kinesis.model.StreamDescriptionSummary;
 import com.amazonaws.services.kinesis.scaling.StreamScaler.SortOrder;
 import com.amazonaws.services.sns.AmazonSNSClient;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class StreamScalingUtils {
 	private static final Log LOG = LogFactory.getLog(StreamScalingUtils.class);
@@ -263,7 +254,7 @@ public class StreamScalingUtils {
 				.compareTo(new BigInteger(o2.getHashKeyRange().getStartingHashKey()));
 	}
 
-	public static int getOpenShardCount(AmazonKinesisClient kinesisClient, String streamName) throws Exception {
+	public static int getOpenShardCount(AmazonKinesis kinesisClient, String streamName) throws Exception {
 		return StreamScalingUtils.describeStream(kinesisClient, streamName).getOpenShardCount();
 	}
 

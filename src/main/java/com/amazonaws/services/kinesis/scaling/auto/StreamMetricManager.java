@@ -3,18 +3,25 @@
  *
  * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
- * Licensed under the Amazon Software License (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *  http://aws.amazon.com/asl/
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.amazonaws.services.kinesis.scaling.auto;
+
+import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
+import com.amazonaws.services.cloudwatch.model.Datapoint;
+import com.amazonaws.services.cloudwatch.model.Dimension;
+import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
+import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
+import com.amazonaws.services.cloudwatch.model.InvalidParameterCombinationException;
+import com.amazonaws.services.cloudwatch.model.InvalidParameterValueException;
+import com.amazonaws.services.cloudwatch.model.MissingRequiredParameterException;
+import com.amazonaws.services.cloudwatch.model.Statistic;
+import com.amazonaws.services.kinesis.AmazonKinesis;
+import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.joda.time.DateTime;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,20 +29,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.joda.time.DateTime;
-
-import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.model.Datapoint;
-import com.amazonaws.services.cloudwatch.model.Dimension;
-import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
-import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
-import com.amazonaws.services.cloudwatch.model.InternalServiceException;
-import com.amazonaws.services.cloudwatch.model.Statistic;
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
-import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
 
 /**
  * The StreamMetricsManager class is responsible for extracting current Stream
@@ -51,7 +44,8 @@ public class StreamMetricManager {
 	public final String CW_NAMESPACE = "AWS/Kinesis";
 	private String streamName;
 	private AmazonCloudWatch cloudWatchClient;
-	private AmazonKinesisClient kinesisClient;
+	private AmazonKinesis kinesisClient;
+	private int cloudWatchPeriod;
 
 	// the set of all Operations that will be tracked in cloudwatch
 	private Set<KinesisOperationType> trackedOperations = new HashSet<>();
@@ -64,11 +58,17 @@ public class StreamMetricManager {
 	private Map<KinesisOperationType, List<GetMetricStatisticsRequest>> cloudwatchRequestTemplates = new HashMap<>();
 
 	public StreamMetricManager(String streamName, List<KinesisOperationType> types, AmazonCloudWatch cloudWatchClient,
-			AmazonKinesisClient kinesisClient) {
+			AmazonKinesis kinesisClient) {
+		this(streamName, StreamMonitor.CLOUDWATCH_PERIOD, types, cloudWatchClient, kinesisClient);
+	}
+
+	public StreamMetricManager(String streamName, int cloudWatchPeriod, List<KinesisOperationType> types, AmazonCloudWatch cloudWatchClient,
+							   AmazonKinesis kinesisClient) {
 		this.streamName = streamName;
 		this.trackedOperations.addAll(types);
 		this.cloudWatchClient = cloudWatchClient;
 		this.kinesisClient = kinesisClient;
+		this.cloudWatchPeriod = cloudWatchPeriod;
 
 		for (KinesisOperationType op : this.trackedOperations) {
 			// create CloudWatch request templates for the information we have
@@ -78,7 +78,7 @@ public class StreamMetricManager {
 
 				cwRequest.withNamespace(CW_NAMESPACE)
 						.withDimensions(new Dimension().withName("StreamName").withValue(this.streamName))
-						.withPeriod(StreamMonitor.CLOUDWATCH_PERIOD).withStatistics(Statistic.Sum)
+						.withPeriod(cloudWatchPeriod).withStatistics(Statistic.Sum)
 						.withMetricName(metricName);
 
 				if (!this.cloudwatchRequestTemplates.containsKey(op)) {
@@ -168,7 +168,13 @@ public class StreamMetricManager {
 					try {
 						cloudWatchMetrics = this.cloudWatchClient.getMetricStatistics(req);
 						ok = true;
-					} catch (InternalServiceException e) {
+					} catch (InvalidParameterValueException e) {
+						throw e;
+					} catch (MissingRequiredParameterException e) {
+						throw e;
+					} catch (InvalidParameterCombinationException e) {
+						throw e;
+					} catch (Exception e) {
 						// this is probably just a transient error, so retry
 						// after backoff
 						tryCount++;
@@ -195,7 +201,7 @@ public class StreamMetricManager {
 					} else {
 						sampleMetric = 0d;
 					}
-					sampleMetric += (d.getSum() / StreamMonitor.CLOUDWATCH_PERIOD);
+					sampleMetric += (d.getSum() / cloudWatchPeriod);
 					metrics.put(d, sampleMetric);
 					currentUtilisationMetrics.get(entry.getKey()).put(metric, metrics);
 				}

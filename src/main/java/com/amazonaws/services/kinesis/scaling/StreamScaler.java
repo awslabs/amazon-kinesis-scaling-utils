@@ -3,28 +3,12 @@
  *
  * Copyright 2014, Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
- * Licensed under the Amazon Software License (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *  http://aws.amazon.com/asl/
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.amazonaws.services.kinesis.scaling;
 
-import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSCredentialsProviderChain;
 import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -35,6 +19,14 @@ import com.amazonaws.services.kinesis.model.InvalidArgumentException;
 import com.amazonaws.services.kinesis.model.LimitExceededException;
 import com.amazonaws.services.kinesis.model.ScalingType;
 import com.amazonaws.services.kinesis.model.UpdateShardCountRequest;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 
 /**
  * Utility for scaling a Kinesis Stream. Places a priority on eventual balancing
@@ -60,7 +52,7 @@ public class StreamScaler {
 
 	private final String AWSApplication = "KinesisScalingUtility";
 
-	public static final String version = ".9.5.7";
+	public static final String version = ".9.5.9";
 
 	private final NumberFormat pctFormat = NumberFormat.getPercentInstance();
 
@@ -76,6 +68,11 @@ public class StreamScaler {
 	}
 
 	public StreamScaler(Region region) throws Exception {
+		this(region, new AWSCredentialsProviderChain(
+			new DefaultAWSCredentialsProviderChain(), new ClasspathPropertiesFileCredentialsProvider()));
+	}
+
+	public StreamScaler(Region region, AWSCredentialsProvider awsCredentialsProvider) throws Exception {
 		pctFormat.setMaximumFractionDigits(1);
 
 		// use the default provider chain plus support for classpath
@@ -90,8 +87,7 @@ public class StreamScaler {
 		userAgent.append(this.version);
 		config.setUserAgent(userAgent.toString());
 
-		kinesisClient = new AmazonKinesisClient(new AWSCredentialsProviderChain(
-				new DefaultAWSCredentialsProviderChain(), new ClasspathPropertiesFileCredentialsProvider()), config);
+		kinesisClient = new AmazonKinesisClient(awsCredentialsProvider, config);
 		kinesisClient.setRegion(region);
 
 		String kinesisEndpoint = System.getProperty("kinesisEndpoint");
