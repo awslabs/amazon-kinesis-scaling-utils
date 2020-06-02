@@ -151,6 +151,7 @@ once you've built the Autoscaling configuration required, save it to an HTTP fil
         }
     }
 ]
+```
 
 ## Autoscaling Behaviour ##
 
