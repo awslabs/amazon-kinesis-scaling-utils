@@ -58,7 +58,6 @@ public class AutoscalingConfiguration implements Serializable {
 
 	private IScalingOperationReportListener scalingOperationReportListener;
 
-	@JsonIgnoreProperties
 	private Integer checkInterval = 45;
 
 	public String getStreamName() {
@@ -239,6 +238,9 @@ public class AutoscalingConfiguration implements Serializable {
 		// set a 0 cool off if none was provided
 		if (this.scaleDown.getCoolOffMins() == null) {
 			this.scaleDown.setCoolOffMins(0);
+		}
+		if (this.scaleUp.getCoolOffMins() == null) {
+			this.scaleUp.setCoolOffMins(0);
 		}
 	}
 }

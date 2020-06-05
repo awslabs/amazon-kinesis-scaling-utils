@@ -6,10 +6,12 @@
         "minShards": 2,
         "maxShards": 16,
         "refreshShardsNumberAfterMin": 3,
+        "checkInterval": 300,
         "scaleUp": {
             "scaleThresholdPct": 75,
             "scaleAfterMins": 2,
-            "scalePct": 100
+            "scalePct": 100,
+            "coolOffMins": 5
         },
         "scaleDown": {
             "scaleThresholdPct": 25,
