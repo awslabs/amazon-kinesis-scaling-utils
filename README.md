@@ -153,7 +153,7 @@ once you've built the Autoscaling configuration required, save it to an HTTP fil
 ]
 ```
 
-Note that the `scalePct` parameter refers to the percentage of existing capacity that we'll scale to - it says "scale up **to** rather than scale up **by**. This means that in the above example, when a scale up is triggered, the autoscaler will double the capacity of the stream - scaling up to 200% of its existing capacity. When a scale down is triggered, it will scale down to 3/4 of its existing capacity.
+Note that the `scalePct` parameter refers to the percentage of existing capacity that we'll scale to - it says "scale up **to**" rather than "scale up **by**". This means that in the above example, when a scale up is triggered, the autoscaler will double the capacity of the stream - scaling up to 200% of its existing capacity. When a scale down is triggered, it will scale down to 3/4 of its existing capacity.
 
 ## Autoscaling Behaviour ##
 
