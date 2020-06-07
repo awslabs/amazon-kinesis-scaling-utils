@@ -139,19 +139,21 @@ once you've built the Autoscaling configuration required, save it to an HTTP fil
        "scaleUp": {
             "scaleThresholdPct": 75,
             "scaleAfterMins": 1,
-            "scalePct": 100,
+            "scalePct": 200,
             "notificationARN": "arn:aws:sns:region:accountId:topicName"
         },
         "scaleDown": {
             "scaleThresholdPct": 25,
             "scaleAfterMins": 1,
-            "scalePct": 50,
+            "scalePct": 75,
             "coolOffMins": 1,
             "notificationARN": "arn:aws:sns:region:accountId:topicName"
         }
     }
 ]
 ```
+
+Note that the `scalePct` parameter refers to the percentage of existing capacity that we'll scale to - it says "scale up **to** rather than scale up **by**. This means that in the above example, when a scale up is triggered, the autoscaler will double the capacity of the stream - scaling up to 200% of its existing capacity. When a scale down is triggered, it will scale down to 3/4 of its existing capacity.
 
 ## Autoscaling Behaviour ##
 
