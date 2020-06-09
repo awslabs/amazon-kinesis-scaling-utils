@@ -279,6 +279,8 @@ public class StreamMonitor implements Runnable {
 
 					}
 
+					lastScaleUp = new DateTime(System.currentTimeMillis());
+
 					// send SNS notifications
 					if (report != null && this.config.getScaleUp().getNotificationARN() != null && this.snsClient != null) {
 						StreamScalingUtils.sendNotification(this.snsClient, this.config.getScaleUp().getNotificationARN(),
