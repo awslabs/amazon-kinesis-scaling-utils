@@ -47,6 +47,7 @@ public class StreamMonitor implements Runnable {
 	private volatile boolean keepRunning = true;
 
 	private DateTime lastScaleDown = null;
+	private DateTime lastScaleUp = null;
 
 	private StreamScaler scaler = null;
 
@@ -249,32 +250,42 @@ public class StreamMonitor implements Runnable {
 			// if the metric stats indicate a scale up or down, then do the
 			// action
 			if (finalScaleDirection.equals(ScaleDirection.UP)) {
-				// submit a scale up task
-				Integer scaleUpCount = this.config.getScaleUp().getScaleCount();
-
-				LOG.info(String.format(
-						"Requesting Scale Up of Stream %s by %s as %s has been above %s%% for %s Minutes",
-						this.config.getStreamName(),
-						(scaleUpCount != null) ? scaleUpCount : this.config.getScaleUp().getScalePct() + "%",
-						this.config.getScaleOnOperations().toString(), this.config.getScaleUp().getScaleThresholdPct(),
-						this.config.getScaleUp().getScaleAfterMins()));
-
-				if (scaleUpCount != null) {
-					report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
-							currentShardCount + scaleUpCount, this.config.getMinShards(), this.config.getMaxShards(),
-							false);
+				// check the cool down interval
+				if (lastScaleUp != null
+						&& now.minusMinutes(this.config.getScaleUp().getCoolOffMins()).isBefore(lastScaleUp)) {
+					LOG.info(String.format(
+							"Stream %s: Deferring Scale Up until Cool Off Period of %s Minutes has elapsed",
+							this.config.getStreamName(), this.config.getScaleUp().getCoolOffMins()));
 				} else {
-					report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
-							new Double(currentShardCount * (new Double(this.config.getScaleUp().getScalePct()) / 100))
-									.intValue(),
-							this.config.getMinShards(), this.config.getMaxShards(), false);
+					// submit a scale up task
+					Integer scaleUpCount = this.config.getScaleUp().getScaleCount();
 
-				}
+					LOG.info(String.format(
+							"Requesting Scale Up of Stream %s by %s as %s has been above %s%% for %s Minutes",
+							this.config.getStreamName(),
+							(scaleUpCount != null) ? scaleUpCount : this.config.getScaleUp().getScalePct() + "%",
+							this.config.getScaleOnOperations().toString(), this.config.getScaleUp().getScaleThresholdPct(),
+							this.config.getScaleUp().getScaleAfterMins()));
 
-				// send SNS notifications
-				if (report != null && this.config.getScaleUp().getNotificationARN() != null && this.snsClient != null) {
-					StreamScalingUtils.sendNotification(this.snsClient, this.config.getScaleUp().getNotificationARN(),
-							"Kinesis Autoscaling - Scale Up", (report == null ? "No Changes Made" : report.asJson()));
+					if (scaleUpCount != null) {
+						report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
+								currentShardCount + scaleUpCount, this.config.getMinShards(), this.config.getMaxShards(),
+								false);
+					} else {
+						report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
+								new Double(currentShardCount * (new Double(this.config.getScaleUp().getScalePct()) / 100))
+										.intValue(),
+								this.config.getMinShards(), this.config.getMaxShards(), false);
+
+					}
+
+					lastScaleUp = new DateTime(System.currentTimeMillis());
+
+					// send SNS notifications
+					if (report != null && this.config.getScaleUp().getNotificationARN() != null && this.snsClient != null) {
+						StreamScalingUtils.sendNotification(this.snsClient, this.config.getScaleUp().getNotificationARN(),
+								"Kinesis Autoscaling - Scale Up", (report == null ? "No Changes Made" : report.asJson()));
+					}
 				}
 			} else if (finalScaleDirection.equals(ScaleDirection.DOWN)) {
 				// check the cool down interval

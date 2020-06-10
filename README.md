@@ -44,24 +44,24 @@ The Kinesis Autoscaling WAR can be deployed as an Elastic Beanstalk application,
 
 ![AutoscalingGraph](https://s3-eu-west-1.amazonaws.com/meyersi-ire-aws/KinesisScalingUtility/img/KinesisAutoscalingGraph.png)
 
-To get started, create a new Elastic Beanstalk application which is a Web Server with a Tomcat predefined configuration. Deploy the WAR by uploading from your local GitHub copy of [dist/KinesisAutoscaling-.9.5.8.war](dist/KinesisAutoscaling-.9.5.8.war), or using the following S3 URLs:
+To get started, create a new Elastic Beanstalk application which is a Web Server with a Tomcat predefined configuration. Deploy the WAR by uploading from your local GitHub copy of [dist/KinesisAutoscaling-.9.6.0.war](dist/KinesisAutoscaling-.9.6.0.war), or using the following S3 URLs:
 
 | region| S3 Path |
 | ----- | ------- |
-| ap-northeast-1 | https://s3.ap-northeast-1.amazonaws.com/awslabs-code-ap-northeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| ap-northeast-2 | https://s3.ap-northeast-2.amazonaws.com/awslabs-code-ap-northeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| ap-south-1 | https://s3.ap-south-1.amazonaws.com/awslabs-code-ap-south-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| ap-southeast-1 | https://s3.ap-southeast-1.amazonaws.com/awslabs-code-ap-southeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| ap-southeast-2 | https://s3.ap-southeast-2.amazonaws.com/awslabs-code-ap-southeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| ca-central-1 | https://s3.ca-central-1.amazonaws.com/awslabs-code-ca-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| eu-central-1 | https://s3.eu-central-1.amazonaws.com/awslabs-code-eu-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| eu-west-1 | https://s3.eu-west-1.amazonaws.com/awslabs-code-eu-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| eu-west-2 | https://s3.eu-west-2.amazonaws.com/awslabs-code-eu-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| sa-east-1 | https://s3.sa-east-1.amazonaws.com/awslabs-code-sa-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| us-east-1 | https://s3.us-east-1.amazonaws.com/awslabs-code-us-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| us-east-2 | https://s3.us-east-2.amazonaws.com/awslabs-code-us-east-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| us-west-1 | https://s3.us-west-1.amazonaws.com/awslabs-code-us-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
-| us-west-2 | https://s3.us-west-2.amazonaws.com/awslabs-code-us-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.5.9.war | 
+| ap-northeast-1 | https://s3.ap-northeast-1.amazonaws.com/awslabs-code-ap-northeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| ap-northeast-2 | https://s3.ap-northeast-2.amazonaws.com/awslabs-code-ap-northeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| ap-south-1 | https://s3.ap-south-1.amazonaws.com/awslabs-code-ap-south-1/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| ap-southeast-1 | https://s3.ap-southeast-1.amazonaws.com/awslabs-code-ap-southeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| ap-southeast-2 | https://s3.ap-southeast-2.amazonaws.com/awslabs-code-ap-southeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| ca-central-1 | https://s3.ca-central-1.amazonaws.com/awslabs-code-ca-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| eu-central-1 | https://s3.eu-central-1.amazonaws.com/awslabs-code-eu-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| eu-west-1 | https://s3.eu-west-1.amazonaws.com/awslabs-code-eu-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| eu-west-2 | https://s3.eu-west-2.amazonaws.com/awslabs-code-eu-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| sa-east-1 | https://s3.sa-east-1.amazonaws.com/awslabs-code-sa-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| us-east-1 | https://s3.us-east-1.amazonaws.com/awslabs-code-us-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| us-east-2 | https://s3.us-east-2.amazonaws.com/awslabs-code-us-east-2/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| us-west-1 | https://s3.us-west-1.amazonaws.com/awslabs-code-us-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
+| us-west-2 | https://s3.us-west-2.amazonaws.com/awslabs-code-us-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.6.0.war | 
 
 Once deployed, you must configure the Autoscaling engine by providing a JSON configuration file on an HTTP or S3 URL. The structure of this configuration file is as follows:
 
@@ -77,12 +77,14 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
  "scaleOnOperation":"List<String> - the types of metric to be monitored, including PUT or GET. Both PutRecord and PutRecords are monitored with PUT",
  "minShards":"Integer - the minimum number of Shards to maintain in the Stream at all times",
  "maxShards":"Integer - the maximum number of Shards to have in the Stream regardless of capacity used",
- "refreshShardsNumberAfterMin":"Integer - minutes interval after which the Stream Monitor should refresh the Shard count on the stream, to accomodate manual scaling activities. If unset, defaults to 10 minutes"
+ "refreshShardsNumberAfterMin":"Integer - minutes interval after which the Stream Monitor should refresh the Shard count on the stream, to accomodate manual scaling activities. If unset, defaults to 10 minutes",
+ "checkInterval":"seconds to sleep after checking metrics until next check"
  "scaleUp": {
      "scaleThresholdPct":Integer - at what threshold we should scale up,
      "scaleAfterMins":Integer - how many minutes above the scaleThresholdPct we should wait before scaling up,
      "scaleCount":Integer - number of Shards to scale up by (prevails over scalePct),
      "scalePct":Integer - % of current Stream capacity to scale up by,
+     "coolOffMins":Integer - number of minutes to wait after a Stream scale up before we scale up again,
      "notificationARN" : String - the ARN of an SNS Topic to send notifications to after a scaleUp action has been taken
  },
  "scaleDown":{
@@ -110,17 +112,19 @@ once you've built the Autoscaling configuration required, save it to an HTTP fil
        "minShards":1,
        "maxShards":16,
        "refreshShardsNumberAfterMin":5,
+       "checkInterval":300,
        "scaleUp": {
             "scaleThresholdPct": 75,
-            "scaleAfterMins": 1,
+            "scaleAfterMins": 5,
             "scaleCount": 1,
+            "coolOffMins": 15,
             "notificationARN": "arn:aws:sns:region:accountId:topicName"
         },
         "scaleDown": {
             "scaleThresholdPct": 25,
-            "scaleAfterMins": 1,
+            "scaleAfterMins": 15,
             "scaleCount": 1,
-            "coolOffMins": 1,
+            "coolOffMins": 60,
             "notificationARN": "arn:aws:sns:region:accountId:topicName"
         }
     }
@@ -136,17 +140,20 @@ once you've built the Autoscaling configuration required, save it to an HTTP fil
        "minShards":1,
        "maxShards":16,
        "refreshShardsNumberAfterMin":5,
+       "checkInterval":300,
        "scaleUp": {
             "scaleThresholdPct": 75,
-            "scaleAfterMins": 1,
+            "scaleAfterMins": 5,
             "scalePct": 200,
+            "coolOffMins": 15,
             "notificationARN": "arn:aws:sns:region:accountId:topicName"
         },
         "scaleDown": {
             "scaleThresholdPct": 25,
             "scaleAfterMins": 1,
+            "scaleAfterMins": 15,
             "scalePct": 75,
-            "coolOffMins": 1,
+            "coolOffMins": 60,
             "notificationARN": "arn:aws:sns:region:accountId:topicName"
         }
     }
