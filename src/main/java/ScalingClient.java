@@ -6,13 +6,13 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kinesis.scaling.ScaleDirection;
 import com.amazonaws.services.kinesis.scaling.ScalingCompletionStatus;
 import com.amazonaws.services.kinesis.scaling.ScalingOperationReport;
 import com.amazonaws.services.kinesis.scaling.StreamScaler;
 import com.amazonaws.services.kinesis.scaling.StreamScaler.ScalingAction;
+
+import software.amazon.awssdk.regions.Region;
 
 /**
  * Class which provides a host environment interface to working with the Kinesis
@@ -76,7 +76,7 @@ public class ScalingClient {
 
 	private String shardId;
 
-	private Region region = Region.getRegion(Regions.US_EAST_1);
+	private Region region = Region.US_EAST_1;
 
 	private ScalingAction scalingAction;
 
@@ -112,7 +112,7 @@ public class ScalingClient {
 		}
 
 		if (System.getProperty(REGION_PARAM) != null) {
-			this.region = Region.getRegion(Regions.fromName(System.getProperty(REGION_PARAM)));
+			this.region = Region.of(System.getProperty(REGION_PARAM));
 		}
 
 		if (System.getProperty(WAIT_FOR_COMPLETION) != null) {

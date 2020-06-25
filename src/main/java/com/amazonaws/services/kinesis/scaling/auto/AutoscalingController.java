@@ -7,15 +7,14 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The AutoscalingController runs StreamMonitors in a Thread Pool for each of
@@ -28,7 +27,7 @@ public class AutoscalingController implements Runnable {
 	
 	public static final String SUPPRESS_ABORT_ON_FATAL = "suppress-abort-on-fatal";
 
-	private static final Log LOG = LogFactory.getLog(AutoscalingController.class);
+	private static final Logger LOG = LoggerFactory.getLogger(AutoscalingController.class);
 
 	// configurations we're responsible for
 	private AutoscalingConfiguration[] config;
@@ -54,6 +53,7 @@ public class AutoscalingController implements Runnable {
 	}
 
 	private static void handleFatal(Exception e) {
+		System.err.print(e.getMessage());
 		LOG.error("Fatal Exception while loading configuration file");
 		LOG.error(e.getMessage(), e);
 		
