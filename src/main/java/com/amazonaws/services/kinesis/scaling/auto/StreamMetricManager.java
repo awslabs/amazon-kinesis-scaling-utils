@@ -7,28 +7,29 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
-import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.model.Datapoint;
-import com.amazonaws.services.cloudwatch.model.Dimension;
-import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
-import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
-import com.amazonaws.services.cloudwatch.model.InvalidParameterCombinationException;
-import com.amazonaws.services.cloudwatch.model.InvalidParameterValueException;
-import com.amazonaws.services.cloudwatch.model.MissingRequiredParameterException;
-import com.amazonaws.services.cloudwatch.model.Statistic;
-import com.amazonaws.services.kinesis.AmazonKinesis;
-import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.joda.time.DateTime;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
+
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.model.Datapoint;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsRequest;
+import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
+import software.amazon.awssdk.services.cloudwatch.model.InvalidParameterCombinationException;
+import software.amazon.awssdk.services.cloudwatch.model.InvalidParameterValueException;
+import software.amazon.awssdk.services.cloudwatch.model.MissingRequiredParameterException;
+import software.amazon.awssdk.services.cloudwatch.model.Statistic;
+import software.amazon.awssdk.services.kinesis.KinesisClient;
 
 /**
  * The StreamMetricsManager class is responsible for extracting current Stream
@@ -40,11 +41,11 @@ import java.util.Set;
  *
  */
 public class StreamMetricManager {
-	private final Log LOG = LogFactory.getLog(StreamMetricManager.class);
+	private final Logger LOG = LoggerFactory.getLogger(StreamMetricManager.class);
 	public final String CW_NAMESPACE = "AWS/Kinesis";
 	private String streamName;
-	private AmazonCloudWatch cloudWatchClient;
-	private AmazonKinesis kinesisClient;
+	private CloudWatchClient cloudWatchClient;
+	private KinesisClient kinesisClient;
 	private int cloudWatchPeriod;
 
 	// the set of all Operations that will be tracked in cloudwatch
@@ -55,15 +56,15 @@ public class StreamMetricManager {
 
 	// set of CloudWatch request template objects, which simplify extracting
 	// metrics in future
-	private Map<KinesisOperationType, List<GetMetricStatisticsRequest>> cloudwatchRequestTemplates = new HashMap<>();
+	private Map<KinesisOperationType, List<GetMetricStatisticsRequest.Builder>> cloudwatchRequestTemplates = new HashMap<>();
 
-	public StreamMetricManager(String streamName, List<KinesisOperationType> types, AmazonCloudWatch cloudWatchClient,
-			AmazonKinesis kinesisClient) {
+	public StreamMetricManager(String streamName, List<KinesisOperationType> types, CloudWatchClient cloudWatchClient,
+			KinesisClient kinesisClient) {
 		this(streamName, StreamMonitor.CLOUDWATCH_PERIOD, types, cloudWatchClient, kinesisClient);
 	}
 
-	public StreamMetricManager(String streamName, int cloudWatchPeriod, List<KinesisOperationType> types, AmazonCloudWatch cloudWatchClient,
-							   AmazonKinesis kinesisClient) {
+	public StreamMetricManager(String streamName, int cloudWatchPeriod, List<KinesisOperationType> types,
+			CloudWatchClient cloudWatchClient, KinesisClient kinesisClient) {
 		this.streamName = streamName;
 		this.trackedOperations.addAll(types);
 		this.cloudWatchClient = cloudWatchClient;
@@ -74,21 +75,20 @@ public class StreamMetricManager {
 			// create CloudWatch request templates for the information we have
 			// at this point
 			for (String metricName : op.getMetricsToFetch()) {
-				GetMetricStatisticsRequest cwRequest = new GetMetricStatisticsRequest();
+				GetMetricStatisticsRequest.Builder cwRequestBuilder = GetMetricStatisticsRequest.builder();
 
-				cwRequest.withNamespace(CW_NAMESPACE)
-						.withDimensions(new Dimension().withName("StreamName").withValue(this.streamName))
-						.withPeriod(cloudWatchPeriod).withStatistics(Statistic.Sum)
-						.withMetricName(metricName);
+				cwRequestBuilder.namespace(CW_NAMESPACE)
+						.dimensions(Dimension.builder().name("StreamName").value(this.streamName).build())
+						.period(cloudWatchPeriod).statistics(Statistic.SUM).metricName(metricName);
 
 				if (!this.cloudwatchRequestTemplates.containsKey(op)) {
-					this.cloudwatchRequestTemplates.put(op, new ArrayList<GetMetricStatisticsRequest>() {
+					this.cloudwatchRequestTemplates.put(op, new ArrayList<GetMetricStatisticsRequest.Builder>() {
 						{
-							add(cwRequest);
+							add(cwRequestBuilder);
 						}
 					});
 				} else {
-					this.cloudwatchRequestTemplates.get(op).add(cwRequest);
+					this.cloudwatchRequestTemplates.get(op).add(cwRequestBuilder);
 				}
 			}
 		}
@@ -99,8 +99,8 @@ public class StreamMetricManager {
 	}
 
 	/**
-	 * Method which extracts and then caches the current max capacity of the
-	 * stream. This is periodically refreshed by the client when needed
+	 * Method which extracts and then caches the current max capacity of the stream.
+	 * This is periodically refreshed by the client when needed
 	 * 
 	 * @throws Exception
 	 */
@@ -123,8 +123,8 @@ public class StreamMetricManager {
 	}
 
 	/**
-	 * Method which extracts the current utilisation metrics for the operation
-	 * types registered in the metrics manager
+	 * Method which extracts the current utilisation metrics for the operation types
+	 * registered in the metrics manager
 	 * 
 	 * @param cwSampleDuration
 	 * @param metricStartTime
@@ -148,18 +148,20 @@ public class StreamMetricManager {
 			}
 		}
 
-		for (Map.Entry<KinesisOperationType, List<GetMetricStatisticsRequest>> entry : this.cloudwatchRequestTemplates
+		for (Map.Entry<KinesisOperationType, List<GetMetricStatisticsRequest.Builder>> entry : this.cloudwatchRequestTemplates
 				.entrySet()) {
-			for (GetMetricStatisticsRequest req : this.cloudwatchRequestTemplates.get(entry.getKey())) {
+			for (GetMetricStatisticsRequest.Builder reqBuilder : this.cloudwatchRequestTemplates.get(entry.getKey())) {
 				double sampleMetric = 0D;
 
-				req.withStartTime(metricStartTime.toDate()).withEndTime(metricEndTime.toDate());
+				reqBuilder.startTime(metricStartTime.toDate().toInstant()).endTime(metricEndTime.toDate().toInstant());
+
+				GetMetricStatisticsRequest req = reqBuilder.build();
 
 				// call cloudwatch to get the required metrics
 				LOG.debug(String.format("Requesting %s minutes of CloudWatch Data for Stream Metric %s",
-						cwSampleDuration, req.getMetricName()));
+						cwSampleDuration, req.metricName()));
 
-				GetMetricStatisticsResult cloudWatchMetrics = null;
+				GetMetricStatisticsResponse cloudWatchMetrics = null;
 				boolean ok = false;
 				int tryCount = 1;
 				long sleepCap = 2000;
@@ -189,8 +191,8 @@ public class StreamMetricManager {
 				// aggregate the sample metrics by datapoint into a map,
 				// so that PutRecords and PutRecord measures are added
 				// together
-				for (Datapoint d : cloudWatchMetrics.getDatapoints()) {
-					StreamMetric metric = StreamMetric.fromUnit(d.getUnit());
+				for (Datapoint d : cloudWatchMetrics.datapoints()) {
+					StreamMetric metric = StreamMetric.fromUnit(d.unit().name());
 
 					Map<Datapoint, Double> metrics = currentUtilisationMetrics.get(entry.getKey()).get(metric);
 					if (metrics == null) {
@@ -201,7 +203,7 @@ public class StreamMetricManager {
 					} else {
 						sampleMetric = 0d;
 					}
-					sampleMetric += (d.getSum() / cloudWatchPeriod);
+					sampleMetric += (d.sum() / cloudWatchPeriod);
 					metrics.put(d, sampleMetric);
 					currentUtilisationMetrics.get(entry.getKey()).put(metric, metrics);
 				}
