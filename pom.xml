@@ -183,6 +183,11 @@
 			<artifactId>jackson-annotations</artifactId>
 			<version>2.11.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>jcl-over-slf4j</artifactId>
+			<version>1.7.30</version>
+		</dependency>
 	</dependencies>
 	<url>https://github.com/awslabs/amazon-kinesis-scaling-utils</url>
 	<organization>
