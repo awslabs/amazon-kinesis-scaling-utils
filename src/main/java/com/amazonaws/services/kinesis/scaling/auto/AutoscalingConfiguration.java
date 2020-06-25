@@ -13,17 +13,19 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
@@ -141,22 +143,24 @@ public class AutoscalingConfiguration implements Serializable {
 
 			// download the configuration from S3
 			S3Client s3Client = S3Client.builder().credentialsProvider(DefaultCredentialsProvider.builder().build())
-					.region(Region.US_EAST_1).build();
+					.build();
 
 			// parse the config path to get the bucket name and prefix
 			final String s3ProtoRegex = "s3:\\/\\/";
 			String bucket = url.replaceAll(s3ProtoRegex, "").split("/")[0];
 			String prefix = url.replaceAll(String.format("%s%s\\/", s3ProtoRegex, bucket), "");
 
-			configFile = File.createTempFile(url, null);
-			s3Client.getObject(GetObjectRequest.builder().bucket(bucket).key(prefix).build(), configFile.toPath());
+			Path configFilePath = Paths.get(String.format("/tmp/%s", RandomStringUtils.randomAlphabetic(16)));
+
+			s3Client.getObject(GetObjectRequest.builder().bucket(bucket).key(prefix).build(), configFilePath);
 			s3Client.close();
+			configFile = configFilePath.toFile();
 
 			LOG.info(String.format("Loaded Configuration from Amazon S3 %s/%s to %s", bucket, prefix,
-					configFile.getAbsolutePath()));
+					configFilePath.getFileName()));
 		} else if (url.startsWith("http")) {
 			configFile = File.createTempFile("kinesis-autoscaling-config", null);
-			LOG.info(String.format("Loading Configuration from %s to %s", url, configFile.getAbsolutePath()));			
+			LOG.info(String.format("Loading Configuration from %s to %s", url, configFile.getAbsolutePath()));
 			FileUtils.copyURLToFile(new URL(url), configFile, 1000, 1000);
 		} else {
 			try {

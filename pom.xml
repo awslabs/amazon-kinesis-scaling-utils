@@ -23,6 +23,7 @@
 				<includes>
 					<include>README</include>
 					<include>*.properties</include>
+					<include>*.xml</include>
 				</includes>
 			</resource>
 		</resources>
@@ -187,6 +188,11 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>jcl-over-slf4j</artifactId>
 			<version>1.7.30</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.10</version>
 		</dependency>
 	</dependencies>
 	<url>https://github.com/awslabs/amazon-kinesis-scaling-utils</url>
