@@ -13,10 +13,11 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Map;
 
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
-import com.amazonaws.services.kinesis.model.Shard;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.model.Shard;
 
 /**
  * Immutable transfer object containing enhanced metadata about Shards in a
@@ -53,8 +54,8 @@ public class ShardHashInfo {
 		}
 		this.shard = shard;
 		this.streamName = streamName;
-		this.endHash = new BigInteger(shard.getHashKeyRange().getEndingHashKey());
-		this.startHash = new BigInteger(shard.getHashKeyRange().getStartingHashKey());
+		this.endHash = new BigInteger(shard.hashKeyRange().endingHashKey());
+		this.startHash = new BigInteger(shard.hashKeyRange().startingHashKey());
 		this.hashWidth = getWidth(this.startHash, this.endHash);
 		this.pctOfKeyspace = getPctOfKeyspace(this.hashWidth);
 	}
@@ -74,7 +75,7 @@ public class ShardHashInfo {
 
 	@JsonProperty("shardID")
 	protected String getShardId() {
-		return this.shard.getShardId();
+		return this.shard.shardId();
 	}
 
 	protected Shard getShard() {
@@ -125,7 +126,7 @@ public class ShardHashInfo {
 	 * @return
 	 * @throws Exception
 	 */
-	public AdjacentShards doSplit(AmazonKinesisClient kinesisClient, double targetPct, String currentHighestShardId)
+	public AdjacentShards doSplit(KinesisClient kinesisClient, double targetPct, String currentHighestShardId)
 			throws Exception {
 		BigInteger targetHash = getHashAtPctOffset(targetPct);
 
@@ -140,8 +141,8 @@ public class ShardHashInfo {
 				currentHighestShardId);
 
 		for (ShardHashInfo info : openShards.values()) {
-			if (!info.getShard().getShardId().equals(this.shard.getShardId())) {
-				if (info.getShard().getHashKeyRange().getStartingHashKey().equals(targetHash.toString())) {
+			if (!info.getShard().shardId().equals(this.shard.shardId())) {
+				if (info.getShard().hashKeyRange().startingHashKey().equals(targetHash.toString())) {
 					higherShard = new ShardHashInfo(this.streamName, info.getShard());
 					break;
 				} else {

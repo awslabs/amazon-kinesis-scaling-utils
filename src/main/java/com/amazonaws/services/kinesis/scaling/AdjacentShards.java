@@ -10,9 +10,7 @@ package com.amazonaws.services.kinesis.scaling;
 import java.math.BigInteger;
 import java.util.Map;
 
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
-import com.amazonaws.services.kinesis.model.LimitExceededException;
-import com.amazonaws.services.kinesis.model.ResourceInUseException;
+import software.amazon.awssdk.services.kinesis.KinesisClient;
 
 /**
  * AdjacentShards are a transfer object for maintaining references between an
@@ -27,8 +25,8 @@ public class AdjacentShards {
 
 	public AdjacentShards(String streamName, ShardHashInfo lower, ShardHashInfo higher) throws Exception {
 		// ensure that the shards are adjacent
-		if (!new BigInteger(higher.getShard().getHashKeyRange().getStartingHashKey())
-				.subtract(new BigInteger(lower.getShard().getHashKeyRange().getEndingHashKey()))
+		if (!new BigInteger(higher.getShard().hashKeyRange().startingHashKey())
+				.subtract(new BigInteger(lower.getShard().hashKeyRange().endingHashKey()))
 				.equals(new BigInteger("1"))) {
 			throw new Exception("Shards are not Adjacent");
 		}
@@ -52,15 +50,15 @@ public class AdjacentShards {
 	 * @return
 	 * @throws Exception
 	 */
-	protected ShardHashInfo doMerge(AmazonKinesisClient kinesisClient, String currentHighestShardId) throws Exception {
+	protected ShardHashInfo doMerge(KinesisClient kinesisClient, String currentHighestShardId) throws Exception {
 		StreamScalingUtils.mergeShards(kinesisClient, streamName, this.lowerShard, this.higherShard, true);
 
 		Map<String, ShardHashInfo> openShards = StreamScalingUtils.getOpenShards(kinesisClient, streamName,
 				currentHighestShardId);
 
 		for (ShardHashInfo info : openShards.values()) {
-			if (lowerShard.getShardId().equals(info.getShard().getParentShardId())
-					&& higherShard.getShardId().equals(info.getShard().getAdjacentParentShardId())) {
+			if (lowerShard.getShardId().equals(info.getShard().parentShardId())
+					&& higherShard.getShardId().equals(info.getShard().adjacentParentShardId())) {
 				return new ShardHashInfo(streamName, info.getShard());
 			}
 		}

@@ -13,22 +13,21 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.transfer.Download;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 /**
  * Transfer Object for the Autoscaling Configuration, which can be built from a
@@ -36,7 +35,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 @SuppressWarnings("serial")
 public class AutoscalingConfiguration implements Serializable {
-	private static final Log LOG = LogFactory.getLog(AutoscalingConfiguration.class);
+	private static final Logger LOG = LoggerFactory.getLogger(AutoscalingConfiguration.class);
 
 	private static ObjectMapper mapper = new ObjectMapper();
 
@@ -140,36 +139,32 @@ public class AutoscalingConfiguration implements Serializable {
 		File configFile = null;
 
 		if (url.startsWith("s3://")) {
-			// download the configuration from S3
-			AmazonS3 s3Client = new AmazonS3Client(new DefaultAWSCredentialsProviderChain());
+			LOG.info(String.format("Downloading configuration file from %s", url));
 
-			TransferManager tm = new TransferManager(s3Client);
+			// download the configuration from S3
+			S3Client s3Client = S3Client.builder().credentialsProvider(DefaultCredentialsProvider.builder().build())
+					.build();
 
 			// parse the config path to get the bucket name and prefix
 			final String s3ProtoRegex = "s3:\\/\\/";
 			String bucket = url.replaceAll(s3ProtoRegex, "").split("/")[0];
 			String prefix = url.replaceAll(String.format("%s%s\\/", s3ProtoRegex, bucket), "");
 
-			// download the file using TransferManager
-			configFile = File.createTempFile(url, null);
-			Download download = tm.download(bucket, prefix, configFile);
-			try {
-				download.waitForCompletion();
-			} catch (InterruptedException e) {
-				throw new IOException(e);
-			}
+			Path configFilePath = Paths.get(String.format("/tmp/%s", RandomStringUtils.randomAlphabetic(16)));
 
-			// shut down the transfer manager
-			tm.shutdownNow();
+			s3Client.getObject(GetObjectRequest.builder().bucket(bucket).key(prefix).build(), configFilePath);
+			s3Client.close();
+			configFile = configFilePath.toFile();
 
 			LOG.info(String.format("Loaded Configuration from Amazon S3 %s/%s to %s", bucket, prefix,
-					configFile.getAbsolutePath()));
+					configFilePath.getFileName()));
 		} else if (url.startsWith("http")) {
 			configFile = File.createTempFile("kinesis-autoscaling-config", null);
+			LOG.info(String.format("Loading Configuration from %s to %s", url, configFile.getAbsolutePath()));
 			FileUtils.copyURLToFile(new URL(url), configFile, 1000, 1000);
-			LOG.info(String.format("Loaded Configuration from %s to %s", url, configFile.getAbsolutePath()));
 		} else {
 			try {
+				LOG.info(String.format("Loaded Configuration local %s", url));
 				InputStream classpathConfig = AutoscalingConfiguration.class.getClassLoader().getResourceAsStream(url);
 				if (classpathConfig != null && classpathConfig.available() > 0) {
 					configFile = new File(
@@ -185,11 +180,9 @@ public class AutoscalingConfiguration implements Serializable {
 			} catch (URISyntaxException e) {
 				throw new IOException(e);
 			}
-			LOG.info(String.format("Loaded Configuration local %s", url));
 		}
 
-		// read the json config into an array of autoscaling
-		// configurations
+		// read the json config into an array of autoscaling configurations
 		AutoscalingConfiguration[] configuration;
 		try {
 			configuration = mapper.readValue(configFile, AutoscalingConfiguration[].class);

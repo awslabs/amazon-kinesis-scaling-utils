@@ -10,50 +10,41 @@ package com.amazonaws.services.kinesis.scaling.auto;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.javatuples.Triplet;
 import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.http.IdleConnectionReaper;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
-import com.amazonaws.services.cloudwatch.model.Datapoint;
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.scaling.AlreadyOneShardException;
 import com.amazonaws.services.kinesis.scaling.ScaleDirection;
 import com.amazonaws.services.kinesis.scaling.ScalingCompletionStatus;
 import com.amazonaws.services.kinesis.scaling.ScalingOperationReport;
 import com.amazonaws.services.kinesis.scaling.StreamScaler;
 import com.amazonaws.services.kinesis.scaling.StreamScalingUtils;
-import com.amazonaws.services.sns.AmazonSNSClient;
+
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.model.Datapoint;
+import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.sns.SnsClient;
 
 public class StreamMonitor implements Runnable {
-	private final Log LOG = LogFactory.getLog(StreamMonitor.class);
-
-	private AmazonKinesisClient kinesisClient;
-
-	private AmazonCloudWatch cloudWatchClient;
-
-	private AmazonSNSClient snsClient;
-
+	private final Logger LOG = LoggerFactory.getLogger(StreamMonitor.class);
 	public static final int CLOUDWATCH_PERIOD = 60;
 
+	private KinesisClient kinesisClient;
+	private CloudWatchClient cloudWatchClient;
+	private SnsClient snsClient;
 	private AutoscalingConfiguration config;
-
 	private volatile boolean keepRunning = true;
-
 	private DateTime lastScaleDown = null;
 	private DateTime lastScaleUp = null;
-
 	private StreamScaler scaler = null;
-
 	private Exception exception;
+	private DefaultCredentialsProvider credentials;
 
-	/* incomplete constructor only for testing */
+	/* partial constructor only for testing */
 	protected StreamMonitor(AutoscalingConfiguration config, StreamScaler scaler) throws Exception {
 		this.config = config;
 		this.scaler = scaler;
@@ -61,26 +52,30 @@ public class StreamMonitor implements Runnable {
 
 	public StreamMonitor(AutoscalingConfiguration config) throws Exception {
 		this.config = config;
-		Region setRegion = Region.getRegion(Regions.fromName(this.config.getRegion()));
-		this.scaler = new StreamScaler(setRegion);
-		this.cloudWatchClient = new AmazonCloudWatchClient(new DefaultAWSCredentialsProviderChain());
-		this.cloudWatchClient.setRegion(setRegion);
+		Region setRegion = Region.of(this.config.getRegion());
 
-		this.kinesisClient = new AmazonKinesisClient(new DefaultAWSCredentialsProviderChain());
-		this.kinesisClient.setRegion(setRegion);
+		// setup credential refresh
+		this.credentials = DefaultCredentialsProvider.builder().asyncCredentialUpdateEnabled(true).build();
 
-		this.snsClient = new AmazonSNSClient(new DefaultAWSCredentialsProviderChain());
-		this.snsClient.setRegion(setRegion);
+		// create scaler class and clients
+		this.cloudWatchClient = CloudWatchClient.builder().credentialsProvider(this.credentials).region(setRegion).build();
+		this.kinesisClient = KinesisClient.builder().credentialsProvider(this.credentials).region(setRegion).build();
+		this.snsClient = SnsClient.builder().credentialsProvider(this.credentials).region(setRegion).build();
+		
+		this.scaler = new StreamScaler(this.kinesisClient);
 	}
 
 	public void stop() {
-		this.keepRunning = false;
-		this.kinesisClient.shutdown();
-		this.cloudWatchClient.shutdown();
-		// the idle-connection-reaper is causing a thread leak without an
-		// explicit shutdown
-		IdleConnectionReaper.shutdown();
 		LOG.info(String.format("Signalling Monitor for Stream %s to Stop", config.getStreamName()));
+		
+		// tell the background thread to stop, and close all client background and credential refresh threads
+		this.keepRunning = false;
+		this.kinesisClient.close();
+		this.cloudWatchClient.close();
+		this.snsClient.close();
+		this.credentials.close();
+		
+		LOG.info("Waiting for Shutdown");
 	}
 
 	/* method has been lifted out of run() for unit testing purposes */
@@ -135,14 +130,14 @@ public class StreamMonitor implements Runnable {
 					currentMax = datapointEntry.getValue();
 					currentPct = currentMax / streamMaxCapacity.get(entry.getKey()).get(metric);
 					// keep track of the last measures
-					if (lastTime == null || new DateTime(datapointEntry.getKey().getTimestamp()).isAfter(lastTime)) {
+					if (lastTime == null || new DateTime(datapointEntry.getKey().timestamp()).isAfter(lastTime)) {
 						latestPct = currentPct;
 						latestMax = currentMax;
 
 						// latest average is a simple moving average
 						latestAvg = latestAvg == 0d ? currentPct : (latestAvg + currentPct) / 2;
 					}
-					lastTime = new DateTime(datapointEntry.getKey().getTimestamp());
+					lastTime = new DateTime(datapointEntry.getKey().timestamp());
 
 					// if the pct for the datapoint exceeds or is below the
 					// thresholds, then add low/high samples
@@ -264,17 +259,19 @@ public class StreamMonitor implements Runnable {
 							"Requesting Scale Up of Stream %s by %s as %s has been above %s%% for %s Minutes",
 							this.config.getStreamName(),
 							(scaleUpCount != null) ? scaleUpCount : this.config.getScaleUp().getScalePct() + "%",
-							this.config.getScaleOnOperations().toString(), this.config.getScaleUp().getScaleThresholdPct(),
+							this.config.getScaleOnOperations().toString(),
+							this.config.getScaleUp().getScaleThresholdPct(),
 							this.config.getScaleUp().getScaleAfterMins()));
 
 					if (scaleUpCount != null) {
 						report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
-								currentShardCount + scaleUpCount, this.config.getMinShards(), this.config.getMaxShards(),
-								false);
+								currentShardCount + scaleUpCount, this.config.getMinShards(),
+								this.config.getMaxShards(), false);
 					} else {
 						report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
-								new Double(currentShardCount * (new Double(this.config.getScaleUp().getScalePct()) / 100))
-										.intValue(),
+								new Double(
+										currentShardCount * (new Double(this.config.getScaleUp().getScalePct()) / 100))
+												.intValue(),
 								this.config.getMinShards(), this.config.getMaxShards(), false);
 
 					}
@@ -282,9 +279,11 @@ public class StreamMonitor implements Runnable {
 					lastScaleUp = new DateTime(System.currentTimeMillis());
 
 					// send SNS notifications
-					if (report != null && this.config.getScaleUp().getNotificationARN() != null && this.snsClient != null) {
-						StreamScalingUtils.sendNotification(this.snsClient, this.config.getScaleUp().getNotificationARN(),
-								"Kinesis Autoscaling - Scale Up", (report == null ? "No Changes Made" : report.asJson()));
+					if (report != null && this.config.getScaleUp().getNotificationARN() != null
+							&& this.snsClient != null) {
+						StreamScalingUtils.sendNotification(this.snsClient,
+								this.config.getScaleUp().getNotificationARN(), "Kinesis Autoscaling - Scale Up",
+								(report == null ? "No Changes Made" : report.asJson()));
 					}
 				}
 			} else if (finalScaleDirection.equals(ScaleDirection.DOWN)) {

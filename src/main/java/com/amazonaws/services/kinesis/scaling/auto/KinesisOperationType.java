@@ -10,10 +10,6 @@ package com.amazonaws.services.kinesis.scaling.auto;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.amazonaws.services.cloudwatch.model.Dimension;
-import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
-import com.amazonaws.services.cloudwatch.model.Statistic;
-
 public enum KinesisOperationType {
 	PUT {
 		@Override

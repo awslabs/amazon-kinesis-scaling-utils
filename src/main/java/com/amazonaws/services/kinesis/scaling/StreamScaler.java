@@ -7,26 +7,23 @@
  */
 package com.amazonaws.services.kinesis.scaling;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSCredentialsProviderChain;
-import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
-import com.amazonaws.services.kinesis.model.InvalidArgumentException;
-import com.amazonaws.services.kinesis.model.LimitExceededException;
-import com.amazonaws.services.kinesis.model.ScalingType;
-import com.amazonaws.services.kinesis.model.UpdateShardCountRequest;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
+import java.net.URI;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.KinesisClientBuilder;
+import software.amazon.awssdk.services.kinesis.model.InvalidArgumentException;
+import software.amazon.awssdk.services.kinesis.model.LimitExceededException;
+import software.amazon.awssdk.services.kinesis.model.ScalingType;
+import software.amazon.awssdk.services.kinesis.model.UpdateShardCountRequest;
 
 /**
  * Utility for scaling a Kinesis Stream. Places a priority on eventual balancing
@@ -56,11 +53,11 @@ public class StreamScaler {
 
 	private final NumberFormat pctFormat = NumberFormat.getPercentInstance();
 
-	private static final Log LOG = LogFactory.getLog(StreamScaler.class);
+	private static final Logger LOG = LoggerFactory.getLogger(StreamScaler.class);
 
-	private AmazonKinesisClient kinesisClient;
+	private KinesisClient kinesisClient;
 
-	private static final Region region = Region.getRegion(Regions.US_EAST_1);
+	private static final Region region = Region.US_EAST_1;
 
 	/** No Args Constructor for scaling a Stream */
 	public StreamScaler() throws Exception {
@@ -68,36 +65,27 @@ public class StreamScaler {
 	}
 
 	public StreamScaler(Region region) throws Exception {
-		this(region, new AWSCredentialsProviderChain(new DefaultAWSCredentialsProviderChain(),
-				new ClasspathPropertiesFileCredentialsProvider()));
-	}
-
-	public StreamScaler(Region region, AWSCredentialsProvider awsCredentialsProvider) throws Exception {
 		pctFormat.setMaximumFractionDigits(1);
-
+		
 		// use the default provider chain plus support for classpath
-		// properties
-		// files
-		ClientConfiguration config = new ClientConfiguration();
-
-		StringBuilder userAgent = new StringBuilder(ClientConfiguration.DEFAULT_USER_AGENT);
-		userAgent.append(" ");
-		userAgent.append(this.AWSApplication);
-		userAgent.append("/");
-		userAgent.append(this.version);
-		config.setUserAgent(userAgent.toString());
-
-		kinesisClient = new AmazonKinesisClient(awsCredentialsProvider, config);
-		kinesisClient.setRegion(region);
+		// properties files
+		KinesisClientBuilder builder = KinesisClient.builder()
+				.credentialsProvider(DefaultCredentialsProvider.builder().build()).region(region);
 
 		String kinesisEndpoint = System.getProperty("kinesisEndpoint");
 		if (kinesisEndpoint != null) {
-			kinesisClient.setEndpoint(kinesisEndpoint);
+			builder.endpointOverride(new URI(kinesisEndpoint));
 		}
 
-		if (kinesisClient.getServiceName() == null) {
+		this.kinesisClient = builder.build();
+
+		if (kinesisClient.serviceName() == null) {
 			throw new Exception("Unable to reach Kinesis Service");
 		}
+	}
+
+	public StreamScaler(KinesisClient kinesisClient) throws Exception {
+		this.kinesisClient = kinesisClient;
 	}
 
 	/**
@@ -105,17 +93,15 @@ public class StreamScaler {
 	 * 
 	 * @return
 	 */
-	protected AmazonKinesisClient getClient() {
+	protected KinesisClient getClient() {
 		return this.kinesisClient;
 	}
 
 	/**
 	 * Scale up a Stream by a fixed amount of Shards
 	 * 
-	 * @param streamName
-	 *            The Stream name to scale
-	 * @param byShardCount
-	 *            The number of Shards to add
+	 * @param streamName   The Stream name to scale
+	 * @param byShardCount The number of Shards to add
 	 * @return A Map of the final state of the Stream after Sharding, indexed by
 	 *         Shard Name * @throws Exception
 	 */
@@ -145,10 +131,8 @@ public class StreamScaler {
 	/**
 	 * Scale down a Stream by a fixed number of Shards
 	 * 
-	 * @param streamName
-	 *            The Stream name to scale
-	 * @param byShardCount
-	 *            The number of Shards to reduce size by
+	 * @param streamName   The Stream name to scale
+	 * @param byShardCount The number of Shards to reduce size by
 	 * @return A Map of the final state of the Stream after Sharding, indexed by
 	 *         Shard Name * @throws Exception
 	 */
@@ -170,10 +154,8 @@ public class StreamScaler {
 	/**
 	 * Scale down a Shard by a Percentage of current capacity
 	 * 
-	 * @param streamName
-	 *            The Stream name to scale
-	 * @param byPct
-	 *            The Percentage by which to reduce capacity on the Stream
+	 * @param streamName The Stream name to scale
+	 * @param byPct      The Percentage by which to reduce capacity on the Stream
 	 * @return A Map of the final state of the Stream after Sharding, indexed by
 	 *         Shard Name * @throws Exception
 	 */
@@ -202,10 +184,8 @@ public class StreamScaler {
 	 * Scale up a Stream by a Percentage of current capacity. Gentle reminder -
 	 * growing by 100% (1) is doubling in size, growing by 200% (2) is tripling
 	 * 
-	 * @param streamName
-	 *            The Stream name to scale
-	 * @param byPct
-	 *            The Percentage by which to scale up the Stream
+	 * @param streamName The Stream name to scale
+	 * @param byPct      The Percentage by which to scale up the Stream
 	 * @return A Map of the final state of the Stream after Sharding, indexed by
 	 *         Shard Name * @throws Exception
 	 */
@@ -234,10 +214,8 @@ public class StreamScaler {
 	/**
 	 * Resize a Stream to the indicated number of Shards
 	 * 
-	 * @param streamName
-	 *            The Stream name to scale
-	 * @param targetShardCount
-	 *            The desired number of shards
+	 * @param streamName       The Stream name to scale
+	 * @param targetShardCount The desired number of shards
 	 * @return A Map of the final state of the Stream after Sharding, indexed by
 	 *         Shard Name
 	 * @throws Exception
@@ -477,9 +455,9 @@ public class StreamScaler {
 				try {
 					LOG.info(String.format("Updating Stream %s Shard Count to %s", streamName, targetShardCount));
 
-					UpdateShardCountRequest req = new UpdateShardCountRequest()
-							.withScalingType(ScalingType.UNIFORM_SCALING).withStreamName(streamName)
-							.withTargetShardCount(targetShardCount);
+					UpdateShardCountRequest req = UpdateShardCountRequest.builder()
+							.scalingType(ScalingType.UNIFORM_SCALING).streamName(streamName)
+							.targetShardCount(targetShardCount).build();
 					this.kinesisClient.updateShardCount(req);
 
 					// block until the stream transitions back to active state
