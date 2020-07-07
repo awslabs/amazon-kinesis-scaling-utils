@@ -43,7 +43,7 @@ public enum KinesisOperationType {
 		public List<String> getMetricsToFetch() {
 			List<String> metricsToFetch = new ArrayList<>();
 			metricsToFetch.add("GetRecords.Bytes");
-			metricsToFetch.add("GetRecords.Success");
+			metricsToFetch.add("GetRecords.Records");
 			return metricsToFetch;
 		}
 	};
