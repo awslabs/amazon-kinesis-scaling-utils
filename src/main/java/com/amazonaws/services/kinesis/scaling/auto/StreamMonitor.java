@@ -130,14 +130,14 @@ public class StreamMonitor implements Runnable {
 					currentMax = datapointEntry.getValue();
 					currentPct = currentMax / streamMaxCapacity.get(entry.getKey()).get(metric);
 					// keep track of the last measures
-					if (lastTime == null || new DateTime(datapointEntry.getKey().timestamp()).isAfter(lastTime)) {
+					if (lastTime == null || new DateTime(datapointEntry.getKey().timestamp().toEpochMilli()).isAfter(lastTime)) {
 						latestPct = currentPct;
 						latestMax = currentMax;
 
 						// latest average is a simple moving average
 						latestAvg = latestAvg == 0d ? currentPct : (latestAvg + currentPct) / 2;
 					}
-					lastTime = new DateTime(datapointEntry.getKey().timestamp());
+					lastTime = new DateTime(datapointEntry.getKey().timestamp().toEpochMilli());
 
 					// if the pct for the datapoint exceeds or is below the
 					// thresholds, then add low/high samples
