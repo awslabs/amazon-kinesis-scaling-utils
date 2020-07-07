@@ -173,8 +173,8 @@ In version .9.5.0, Autoscaling added the ability to scale on the basis of PUT __
 | | | PUT | | |
 | :-- | :-- | :--: | :--: | :--: |
 | | __Range__ | Below | In | Above |
-|__GET__ | Below | Down | Down | Up |
-| | In | Down | Do Nothing | Up |
+|__GET__ | Below | Down | No Nothing | Up |
+| | In | No Nothing | Do Nothing | Up |
 | | Above | Up | Up | Up
 
 ## Monitoring Autoscaling
