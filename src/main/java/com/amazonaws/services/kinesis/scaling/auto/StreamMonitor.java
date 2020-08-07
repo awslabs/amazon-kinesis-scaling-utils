@@ -225,7 +225,7 @@ public class StreamMonitor implements Runnable {
 		// implement the decision matrix
 		if (getVote != null && putVote != null) {
 			// If either of the votes are to scale up, then do so.
-			// If any vote is DOWN, then scale down.
+			// If both votes are DOWN, then scale down.
 			// Otherwise do nothing.
 			if (getVote == ScaleDirection.UP || putVote == ScaleDirection.UP) {
 				finalScaleDirection = ScaleDirection.UP;
