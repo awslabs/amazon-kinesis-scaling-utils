@@ -130,14 +130,14 @@ public class StreamMonitor implements Runnable {
 					currentMax = datapointEntry.getValue();
 					currentPct = currentMax / streamMaxCapacity.get(entry.getKey()).get(metric);
 					// keep track of the last measures
-					if (lastTime == null || new DateTime(datapointEntry.getKey().timestamp()).isAfter(lastTime)) {
+					if (lastTime == null || new DateTime(datapointEntry.getKey().timestamp().toEpochMilli()).isAfter(lastTime)) {
 						latestPct = currentPct;
 						latestMax = currentMax;
 
 						// latest average is a simple moving average
 						latestAvg = latestAvg == 0d ? currentPct : (latestAvg + currentPct) / 2;
 					}
-					lastTime = new DateTime(datapointEntry.getKey().timestamp());
+					lastTime = new DateTime(datapointEntry.getKey().timestamp().toEpochMilli());
 
 					// if the pct for the datapoint exceeds or is below the
 					// thresholds, then add low/high samples
@@ -224,15 +224,15 @@ public class StreamMonitor implements Runnable {
 		// check if we have both get and put votes - if we have both then
 		// implement the decision matrix
 		if (getVote != null && putVote != null) {
-			// if either of the votes are to scale up, then do so. If both are
-			// None,
-			// then do nothing. Otherwise scale down
+			// If either of the votes are to scale up, then do so.
+			// If both votes are DOWN, then scale down.
+			// Otherwise do nothing.
 			if (getVote == ScaleDirection.UP || putVote == ScaleDirection.UP) {
 				finalScaleDirection = ScaleDirection.UP;
-			} else if (getVote == ScaleDirection.NONE && putVote == ScaleDirection.NONE) {
-				finalScaleDirection = ScaleDirection.NONE;
-			} else {
+			} else if (getVote == ScaleDirection.DOWN && putVote == ScaleDirection.DOWN) {
 				finalScaleDirection = ScaleDirection.DOWN;
+			} else {
+				finalScaleDirection = ScaleDirection.NONE;
 			}
 		} else {
 			// we only have get or put votes, so use the non-null one

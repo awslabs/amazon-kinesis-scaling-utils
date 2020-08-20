@@ -8,7 +8,7 @@
 package com.amazonaws.services.kinesis.scaling.auto;
 
 public enum StreamMetric {
-	Bytes("Bytes"), Records("Count");
+	Bytes("BYTES"), Records("COUNT");
 
 	private final String unit;
 
@@ -18,7 +18,7 @@ public enum StreamMetric {
 
 	public static StreamMetric fromUnit(String unit) {
 		for (StreamMetric m : values()) {
-			if (m.unit.equals(unit)) {
+			if (m.unit.toUpperCase().equals(unit)) {
 				return m;
 			}
 		}
