@@ -105,7 +105,7 @@ public class StreamMetricManager {
 	 * @throws Exception
 	 */
 	public void loadMaxCapacity() throws Exception {
-		LOG.debug(String.format("Refreshing Stream %s Throughput Information", this.streamName));
+		LOG.info(String.format("Refreshing Stream %s Throughput Information", this.streamName));
 		Integer openShards = StreamScalingUtils.getOpenShardCount(this.kinesisClient, this.streamName);
 
 		for (KinesisOperationType op : this.trackedOperations) {
@@ -117,8 +117,8 @@ public class StreamMetricManager {
 
 			streamMaxCapacity.put(op, maxCapacity);
 
-			LOG.debug(String.format("Stream Capacity %s Open Shards, %,d Bytes/Second, %d Records/Second", openShards,
-					maxBytes, maxRecords));
+			LOG.info(String.format("Stream Capacity for %s: %s Open Shards, %,d Bytes/Second, %d Records/Second",
+					op.toString(), openShards, maxBytes, maxRecords));
 		}
 	}
 
@@ -158,7 +158,7 @@ public class StreamMetricManager {
 				GetMetricStatisticsRequest req = reqBuilder.build();
 
 				// call cloudwatch to get the required metrics
-				LOG.debug(String.format("Requesting %s minutes of CloudWatch Data for Stream Metric %s",
+				LOG.info(String.format("Requesting %s minutes of CloudWatch Data for Stream Metric %s",
 						cwSampleDuration, req.metricName()));
 
 				GetMetricStatisticsResponse cloudWatchMetrics = null;
@@ -191,6 +191,7 @@ public class StreamMetricManager {
 				// aggregate the sample metrics by datapoint into a map,
 				// so that PutRecords and PutRecord measures are added
 				// together
+
 				for (Datapoint d : cloudWatchMetrics.datapoints()) {
 					StreamMetric metric = StreamMetric.fromUnit(d.unit().name());
 
