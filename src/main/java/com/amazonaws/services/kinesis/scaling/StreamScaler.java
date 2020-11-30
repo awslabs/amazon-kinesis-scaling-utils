@@ -440,16 +440,17 @@ public class StreamScaler {
 
 	public ScalingOperationReport updateShardCount(String streamName, int currentShardCount, int targetShardCount,
 			Integer minShards, Integer maxShards, boolean waitForCompletion) throws Exception {
-		if (currentShardCount != targetShardCount) {
+		ScaleDirection scaleDirection = getScaleDirection(currentShardCount, targetShardCount);
+		if (scaleDirection != ScaleDirection.NONE) {
 			// catch already at minimum
 			if (targetShardCount < 1) {
 				throw new AlreadyOneShardException();
 			}
 
 			// ensure we dont go below/above min/max
-			if (minShards != null && targetShardCount < minShards && targetShardCount < currentShardCount) {
+			if (minShards != null && targetShardCount < minShards && scaleDirection == ScaleDirection.DOWN) {
 				return reportFor(ScalingCompletionStatus.AlreadyAtMinimum, streamName, 0, ScaleDirection.NONE);
-			} else if (maxShards != null && targetShardCount > maxShards && targetShardCount > currentShardCount) {
+			} else if (maxShards != null && targetShardCount > maxShards && scaleDirection == ScaleDirection.UP) {
 				return reportFor(ScalingCompletionStatus.AlreadyAtMaximum, streamName, 0, ScaleDirection.NONE);
 			} else {
 				try {
@@ -466,8 +467,7 @@ public class StreamScaler {
 
 					// return the current state of the stream
 					if (waitForCompletion) {
-						return reportFor(ScalingCompletionStatus.Ok, streamName, 1,
-								(currentShardCount >= targetShardCount ? ScaleDirection.DOWN : ScaleDirection.UP));
+						return reportFor(ScalingCompletionStatus.Ok, streamName, 1, scaleDirection);
 					} else {
 						return null;
 					}
@@ -489,6 +489,16 @@ public class StreamScaler {
 			LOG.info(String.format("No Scaling Action being taken as current and target Shard count = %s",
 					currentShardCount));
 			return reportFor(ScalingCompletionStatus.NoActionRequired, streamName, 0, ScaleDirection.NONE);
+		}
+	}
+
+	private ScaleDirection getScaleDirection(int currentShardCount, int targetShardCount) {
+		if (currentShardCount == targetShardCount) {
+			return ScaleDirection.NONE;
+		} else if (currentShardCount < targetShardCount) {
+			return ScaleDirection.UP;
+		} else {
+			return ScaleDirection.DOWN;
 		}
 	}
 }
