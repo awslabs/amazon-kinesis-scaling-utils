@@ -137,7 +137,11 @@ public class StreamScalingUtils {
 
 	public static List<Shard> listShards(final KinesisClient kinesisClient, final String streamName,
 			final String shardIdStart) throws Exception {
-		LOG.debug(String.format("Listing Stream %s from Shard %s", streamName, shardIdStart));
+		if (shardIdStart != null) {
+			LOG.info(String.format("Listing Stream %s from Shard %s", streamName, shardIdStart));
+		} else {
+			LOG.info(String.format("Listing Stream %s", streamName));
+		}
 
 		KinesisOperation describe = new KinesisOperation() {
 			public Object run(KinesisClient client) {
@@ -168,7 +172,7 @@ public class StreamScalingUtils {
 
 	public static Shard getShard(final KinesisClient kinesisClient, final String streamName, final String shardIdStart)
 			throws Exception {
-		LOG.debug(String.format("Getting Shard %s for Stream %s", shardIdStart, streamName));
+		LOG.info(String.format("Getting Shard %s for Stream %s", shardIdStart, streamName));
 
 		KinesisOperation describe = new KinesisOperation() {
 			public Object run(KinesisClient client) {
@@ -187,7 +191,7 @@ public class StreamScalingUtils {
 
 	public static void splitShard(final KinesisClient kinesisClient, final String streamName, final String shardId,
 			final BigInteger targetHash, final boolean waitForActive) throws Exception {
-		LOG.debug(String.format("Splitting Shard %s at %s", shardId, targetHash.toString()));
+		LOG.info(String.format("Splitting Shard %s at %s", shardId, targetHash.toString()));
 
 		KinesisOperation split = new KinesisOperation() {
 			public Object run(KinesisClient client) {
@@ -204,7 +208,7 @@ public class StreamScalingUtils {
 	public static void mergeShards(final KinesisClient kinesisClient, final String streamName,
 			final ShardHashInfo lowerShard, final ShardHashInfo higherShard, final boolean waitForActive)
 			throws Exception {
-		LOG.debug(String.format("Merging Shard %s and %s", lowerShard, higherShard));
+		LOG.info(String.format("Merging Shard %s and %s", lowerShard, higherShard));
 
 		KinesisOperation merge = new KinesisOperation() {
 			public Object run(KinesisClient client) {

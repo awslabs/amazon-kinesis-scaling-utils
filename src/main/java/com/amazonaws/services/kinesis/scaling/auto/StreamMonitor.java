@@ -7,7 +7,11 @@
  */
 package com.amazonaws.services.kinesis.scaling.auto;
 
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.javatuples.Triplet;
@@ -30,7 +34,7 @@ import software.amazon.awssdk.services.kinesis.KinesisClient;
 import software.amazon.awssdk.services.sns.SnsClient;
 
 public class StreamMonitor implements Runnable {
-	private final Logger LOG = LoggerFactory.getLogger(StreamMonitor.class);
+	private final Logger LOG = LoggerFactory.getLogger(StreamMonitor.class);;
 	public static final int CLOUDWATCH_PERIOD = 60;
 
 	private KinesisClient kinesisClient;
@@ -43,6 +47,8 @@ public class StreamMonitor implements Runnable {
 	private StreamScaler scaler = null;
 	private Exception exception;
 	private DefaultCredentialsProvider credentials;
+	private final DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+			.withLocale(Locale.UK).withZone(ZoneId.systemDefault());
 
 	/* partial constructor only for testing */
 	protected StreamMonitor(AutoscalingConfiguration config, StreamScaler scaler) throws Exception {
@@ -58,23 +64,25 @@ public class StreamMonitor implements Runnable {
 		this.credentials = DefaultCredentialsProvider.builder().asyncCredentialUpdateEnabled(true).build();
 
 		// create scaler class and clients
-		this.cloudWatchClient = CloudWatchClient.builder().credentialsProvider(this.credentials).region(setRegion).build();
+		this.cloudWatchClient = CloudWatchClient.builder().credentialsProvider(this.credentials).region(setRegion)
+				.build();
 		this.kinesisClient = KinesisClient.builder().credentialsProvider(this.credentials).region(setRegion).build();
 		this.snsClient = SnsClient.builder().credentialsProvider(this.credentials).region(setRegion).build();
-		
+
 		this.scaler = new StreamScaler(this.kinesisClient);
 	}
 
 	public void stop() {
 		LOG.info(String.format("Signalling Monitor for Stream %s to Stop", config.getStreamName()));
-		
-		// tell the background thread to stop, and close all client background and credential refresh threads
+
+		// tell the background thread to stop, and close all client background and
+		// credential refresh threads
 		this.keepRunning = false;
 		this.kinesisClient.close();
 		this.cloudWatchClient.close();
 		this.snsClient.close();
 		this.credentials.close();
-		
+
 		LOG.info("Waiting for Shutdown");
 	}
 
@@ -100,6 +108,7 @@ public class StreamMonitor implements Runnable {
 
 			// process each metric type, including Records and Bytes
 			for (StreamMetric metric : StreamMetric.values()) {
+				double streamMax = 0D;
 				double currentMax = 0D;
 				double currentPct = 0D;
 				double latestPct = 0d;
@@ -128,9 +137,17 @@ public class StreamMonitor implements Runnable {
 				// and log scale up/down votes by period
 				for (Map.Entry<Datapoint, Double> datapointEntry : metrics.entrySet()) {
 					currentMax = datapointEntry.getValue();
-					currentPct = currentMax / streamMaxCapacity.get(entry.getKey()).get(metric);
+					streamMax = streamMaxCapacity.get(entry.getKey()).get(metric);
+					currentPct = currentMax / streamMax;
+
+					LOG.info(String.format(
+							"Utilisation of %s %s %.2f%% at %s upon current value of %.2f and Stream max of %.2f",
+							entry.getKey().name(), metric, currentPct * 100,
+							formatter.format(datapointEntry.getKey().timestamp()), currentMax, streamMax));
+
 					// keep track of the last measures
-					if (lastTime == null || new DateTime(datapointEntry.getKey().timestamp().toEpochMilli()).isAfter(lastTime)) {
+					if (lastTime == null
+							|| new DateTime(datapointEntry.getKey().timestamp().toEpochMilli()).isAfter(lastTime)) {
 						latestPct = currentPct;
 						latestMax = currentMax;
 
@@ -139,15 +156,12 @@ public class StreamMonitor implements Runnable {
 					}
 					lastTime = new DateTime(datapointEntry.getKey().timestamp().toEpochMilli());
 
-					// if the pct for the datapoint exceeds or is below the
-					// thresholds, then add low/high samples
-					if (currentPct > new Double(this.config.getScaleUp().getScaleThresholdPct()) / 100) {
-						LOG.debug(String.format("%s %s: Cached High Alarm Condition for %.2f %s/Second (%.2f%%)",
-								entry.getKey(), metric, currentMax, metric, currentPct * 100));
+					// if the pct for the datapoint exceeds the configured threshold, then count a
+					// high sample, otherwise it's a low sample
+					if (new Double(currentPct) > new Double(this.config.getScaleUp().getScaleThresholdPct()) / 100D) {
 						highSamples++;
-					} else if (currentPct < new Double(this.config.getScaleDown().getScaleThresholdPct()) / 100) {
-						LOG.debug(String.format("%s %s: Cached Low Alarm Condition for %.2f %s/Second (%.2f%%)",
-								entry.getKey(), metric, currentMax, metric, currentPct * 100));
+					} else if (new Double(currentPct) < new Double(this.config.getScaleDown().getScaleThresholdPct())
+							/ 100D) {
 						lowSamples++;
 					}
 				}
@@ -158,10 +172,8 @@ public class StreamMonitor implements Runnable {
 					lowSamples += cwSampleDuration - metrics.size();
 				}
 
-				LOG.info(
-						String.format(metric + ": Stream %s Used %s[%s] Capacity ~ %.2f%% (%,.0f " + metric + " of %d)",
-								config.getStreamName(), entry.getKey(), metric, latestAvg * 100, latestMax,
-								streamMaxCapacity.get(entry.getKey()).get(metric)));
+				LOG.info(String.format("%s %s performance analysis: %s high samples, and %s low samples",
+						entry.getKey().name(), metric, highSamples, lowSamples));
 
 				// merge the per-stream metric samples together for the
 				// operation
@@ -206,7 +218,7 @@ public class StreamMonitor implements Runnable {
 			}
 
 			LOG.info(String.format(
-					"Will decide scaling action based on metric %s[%s] due to higher utilisation metric %.2f%%",
+					"Will decide scaling action based on metric %s[%s] due to highest utilisation metric value %.2f%%",
 					entry.getKey(), higherUtilisationMetric, higherUtilisationPct * 100));
 
 			if (perMetricSamples.get(higherUtilisationMetric).getValue0() >= config.getScaleUp().getScaleAfterMins()) {
@@ -220,6 +232,8 @@ public class StreamMonitor implements Runnable {
 		// process the scaling votes
 		ScaleDirection getVote = scaleVotes.get(KinesisOperationType.GET);
 		ScaleDirection putVote = scaleVotes.get(KinesisOperationType.PUT);
+
+		LOG.info(String.format("Scaling Votes - GET: %s, PUT: %s", getVote, putVote));
 
 		// check if we have both get and put votes - if we have both then
 		// implement the decision matrix
@@ -255,35 +269,43 @@ public class StreamMonitor implements Runnable {
 					// submit a scale up task
 					Integer scaleUpCount = this.config.getScaleUp().getScaleCount();
 
-					LOG.info(String.format(
-							"Requesting Scale Up of Stream %s by %s as %s has been above %s%% for %s Minutes",
-							this.config.getStreamName(),
-							(scaleUpCount != null) ? scaleUpCount : this.config.getScaleUp().getScalePct() + "%",
-							this.config.getScaleOnOperations().toString(),
-							this.config.getScaleUp().getScaleThresholdPct(),
-							this.config.getScaleUp().getScaleAfterMins()));
-
+					int newTarget = 1;
 					if (scaleUpCount != null) {
-						report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
-								currentShardCount + scaleUpCount, this.config.getMinShards(),
-								this.config.getMaxShards(), false);
+						newTarget = currentShardCount + scaleUpCount;
 					} else {
-						report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
-								new Double(
-										currentShardCount * (new Double(this.config.getScaleUp().getScalePct()) / 100))
-												.intValue(),
-								this.config.getMinShards(), this.config.getMaxShards(), false);
-
+						// scaling on %
+						newTarget = new Double(
+								Math.ceil(currentShardCount * new Double(this.config.getScaleUp().getScalePct()) / 100))
+										.intValue();
 					}
 
-					lastScaleUp = new DateTime(System.currentTimeMillis());
+					if (newTarget != currentShardCount && newTarget > 0) {
+						LOG.info(String.format(
+								"Requesting Scale Up of Stream %s by %s to %s as %s has been above %s%% for %s Minutes",
+								this.config.getStreamName(),
+								(scaleUpCount != null) ? scaleUpCount : this.config.getScaleUp().getScalePct() + "%",
+								newTarget, this.config.getScaleOnOperations().toString(),
+								this.config.getScaleUp().getScaleThresholdPct(),
+								this.config.getScaleUp().getScaleAfterMins()));
 
-					// send SNS notifications
-					if (report != null && this.config.getScaleUp().getNotificationARN() != null
-							&& this.snsClient != null) {
-						StreamScalingUtils.sendNotification(this.snsClient,
-								this.config.getScaleUp().getNotificationARN(), "Kinesis Autoscaling - Scale Up",
-								(report == null ? "No Changes Made" : report.asJson()));
+						if (scaleUpCount != null) {
+							report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
+									newTarget, this.config.getMinShards(), this.config.getMaxShards(), false);
+						} else {
+							report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
+									newTarget, this.config.getMinShards(), this.config.getMaxShards(), false);
+
+						}
+
+						lastScaleUp = new DateTime(System.currentTimeMillis());
+
+						// send SNS notifications
+						if (report != null && this.config.getScaleUp().getNotificationARN() != null
+								&& this.snsClient != null) {
+							StreamScalingUtils.sendNotification(this.snsClient,
+									this.config.getScaleUp().getNotificationARN(), "Kinesis Autoscaling - Scale Up",
+									(report == null ? "No Changes Made" : report.asJson()));
+						}
 					}
 				}
 			} else if (finalScaleDirection.equals(ScaleDirection.DOWN)) {
@@ -296,32 +318,40 @@ public class StreamMonitor implements Runnable {
 				} else {
 					// submit a scale down
 					Integer scaleDownCount = this.config.getScaleDown().getScaleCount();
-					LOG.info(String.format(
-							"Requesting Scale Down of Stream %s by %s as %s has been below %s%% for %s Minutes",
-							this.config.getStreamName(),
-							(scaleDownCount != null) ? scaleDownCount : this.config.getScaleDown().getScalePct() + "%",
-							config.getScaleOnOperations().toString(), this.config.getScaleDown().getScaleThresholdPct(),
-							this.config.getScaleDown().getScaleAfterMins()));
 					try {
+						int newTarget = 1;
 						if (scaleDownCount != null) {
-							report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
-									currentShardCount - scaleDownCount, this.config.getMinShards(),
-									this.config.getMaxShards(), false);
+							newTarget = currentShardCount - scaleDownCount;
 						} else {
-							report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
-									new Double(currentShardCount
-											* (new Double(this.config.getScaleDown().getScalePct()) / 100)).intValue(),
-									this.config.getMinShards(), this.config.getMaxShards(), false);
+							newTarget = new Double(Math.floor(new Double(currentShardCount)
+									* (1D - (new Double(this.config.getScaleDown().getScalePct()) / 100D)))).intValue();
 						}
 
-						lastScaleDown = new DateTime(System.currentTimeMillis());
+						if (newTarget != currentShardCount && newTarget > 0) {
+							LOG.info(String.format(
+									"Requesting Scale Down of Stream %s by %s to %s as %s has been below %s%% for %s Minutes",
+									this.config.getStreamName(),
+									(scaleDownCount != null) ? scaleDownCount
+											: this.config.getScaleDown().getScalePct() + "%",
+									newTarget, config.getScaleOnOperations().toString(),
+									this.config.getScaleDown().getScaleThresholdPct(),
+									this.config.getScaleDown().getScaleAfterMins()));
 
-						// send SNS notifications
-						if (report != null && this.config.getScaleDown().getNotificationARN() != null
-								&& this.snsClient != null) {
-							StreamScalingUtils.sendNotification(this.snsClient,
-									this.config.getScaleDown().getNotificationARN(), "Kinesis Autoscaling - Scale Down",
-									(report == null ? "No Changes Made" : report.asJson()));
+							report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
+									newTarget, this.config.getMinShards(), this.config.getMaxShards(), false);
+
+							lastScaleDown = new DateTime(System.currentTimeMillis());
+
+							// send SNS notifications
+							if (report != null && this.config.getScaleDown().getNotificationARN() != null
+									&& this.snsClient != null) {
+								StreamScalingUtils.sendNotification(this.snsClient,
+										this.config.getScaleDown().getNotificationARN(),
+										"Kinesis Autoscaling - Scale Down",
+										(report == null ? "No Changes Made" : report.asJson()));
+							}
+						} else {
+							LOG.info("Scale down factor too small to result in a scaling change");
 						}
 					} catch (AlreadyOneShardException aose) {
 						// do nothing - we're already at 1 shard
@@ -366,37 +396,41 @@ public class StreamMonitor implements Runnable {
 
 			do {
 				DateTime now = new DateTime(System.currentTimeMillis());
-				DateTime metricEndTime = now;
 
 				// fetch only the last N minutes metrics
-				DateTime metricStartTime = metricEndTime.minusMinutes(cwSampleDuration);
+				DateTime metricStartTime = now.minusMinutes(cwSampleDuration);
 
 				// load the current cloudwatch metrics for the stream via the
 				// metrics manager
 				@SuppressWarnings("rawtypes")
 				Map currentUtilisationMetrics = metricManager.queryCurrentUtilisationMetrics(cwSampleDuration,
-						metricStartTime, metricEndTime);
+						metricStartTime, now);
 
 				// process the aggregated set of Cloudwatch Datapoints
-				report = processCloudwatchMetrics(currentUtilisationMetrics, metricManager.getStreamMaxCapacity(),
-						cwSampleDuration, now);
+				try {
+					report = processCloudwatchMetrics(currentUtilisationMetrics, metricManager.getStreamMaxCapacity(),
+							cwSampleDuration, now);
 
-				if (report != null) {
-					// refresh the current max capacity after the
-					// modification
-					metricManager.loadMaxCapacity();
-					lastShardCapacityRefreshTime = now;
+					if (report != null) {
+						// refresh the current max capacity after the
+						// modification
+						metricManager.loadMaxCapacity();
+						lastShardCapacityRefreshTime = now;
 
-					// notify all report listeners that we've completed a
-					// scaling operation
-					if (this.config.getScalingOperationReportListener() != null) {
-						this.config.getScalingOperationReportListener().onReport(report);
+						// notify all report listeners that we've completed a
+						// scaling operation
+						if (this.config.getScalingOperationReportListener() != null) {
+							this.config.getScalingOperationReportListener().onReport(report);
+						}
+
+						if (report.getScaleDirection() != ScaleDirection.NONE) {
+							LOG.info(report.toString());
+						}
+						report = null;
 					}
-
-					if (report.getScaleDirection() != ScaleDirection.NONE) {
-						LOG.info(report.toString());
-					}
-					report = null;
+				} catch (Exception e) {
+					// keep running even though the scaling action had an exception
+					LOG.error(e.getMessage());
 				}
 
 				// refresh shard stats every configured period, in case someone

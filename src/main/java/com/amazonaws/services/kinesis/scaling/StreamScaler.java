@@ -49,7 +49,7 @@ public class StreamScaler {
 
 	private final String AWSApplication = "KinesisScalingUtility";
 
-	public static final String version = ".9.8.0";
+	public static final String version = ".9.8.1";
 
 	private final NumberFormat pctFormat = NumberFormat.getPercentInstance();
 
