@@ -452,11 +452,11 @@ public class StreamScaler {
 			throw new AlreadyOneShardException();
 		}
 
-		// ensure we dont go below/above min/max while allowing shards count to move towards min/max range
-		if (minShards != null && targetShardCount < minShards && scaleDirection == ScaleDirection.DOWN) {
-			return reportFor(ScalingCompletionStatus.AlreadyAtMinimum, streamName, 0, ScaleDirection.NONE);
-		} else if (maxShards != null && targetShardCount > maxShards && scaleDirection == ScaleDirection.UP) {
-			return reportFor(ScalingCompletionStatus.AlreadyAtMaximum, streamName, 0, ScaleDirection.NONE);
+		// ensure we stay between min/max
+		if (minShards != null && targetShardCount < minShards) {
+			targetShardCount = minShards;
+		} else if (maxShards != null && targetShardCount > maxShards) {
+			targetShardCount = maxShards;
 		}
 
 		try {
