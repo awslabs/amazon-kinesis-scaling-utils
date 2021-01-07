@@ -4,9 +4,9 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.amazonaws</groupId>
 	<artifactId>kinesis-scaling-utils</artifactId>
-	<version>.9.8.2</version>
+	<version>.9.8.3</version>
 	<properties>
-		<sdk-version>2.13.39</sdk-version>
+		<sdk-version>2.15.60</sdk-version>
 	</properties>
 	<licenses>
 		<license>
@@ -146,7 +146,7 @@
 		<dependency>
 			<groupId>joda-time</groupId>
 			<artifactId>joda-time</artifactId>
-			<version>2.9.9</version>
+			<version>2.10.9</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
@@ -177,7 +177,7 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>http-client-spi</artifactId>
-			<version>2.13.39</version>
+			<version>${sdk-version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>

@@ -207,16 +207,14 @@ public class AutoscalingConfiguration implements Serializable {
 			throw new InvalidConfigurationException("Must provide at least one scale up or scale down configuration");
 		}
 
-		if (this.scaleUp != null && this.scaleUp.getScalePct() != null && this.scaleUp.getScalePct() <= 100) {
-			throw new InvalidConfigurationException(String.format(
-					"Scale Up Percentage of %s is invalid or will result in unexpected behaviour. This parameter represents the target size of the stream after being multiplied by the current number of Shards. Scale up by 100%% will result in a Stream of the same number of Shards (Current Shard Count * 1)",
-					this.scaleUp.getScalePct()));
+		if ((this.scaleUp != null && this.scaleUp.getScalePct() == null) || this.scaleUp.getScalePct() < 0) {
+			throw new InvalidConfigurationException(
+					String.format("Scale Up Percentage of %s is invalid or null", this.scaleUp.getScalePct()));
 		}
 
-		if (this.scaleDown != null && this.scaleDown.getScalePct() != null && this.scaleDown.getScalePct() >= 100) {
-			throw new InvalidConfigurationException(String.format(
-					"Scale Down Percentage of %s is invalid or will result in unexpected behaviour. This parameter represents the target size of the stream after being multiplied by the current number of Shards. Scale up by 100%% will result in a Stream of the same number of Shards (Current Shard Count * 1)",
-					this.scaleDown.getScalePct()));
+		if ((this.scaleDown != null && this.scaleDown.getScalePct() == null) || this.scaleDown.getScalePct() < 0) {
+			throw new InvalidConfigurationException(
+					String.format("Scale Down Percentage of %s is invalid or null", this.scaleDown.getScalePct()));
 		}
 
 		if (this.minShards != null && this.maxShards != null && this.minShards > this.maxShards) {
