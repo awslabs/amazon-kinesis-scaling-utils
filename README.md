@@ -107,7 +107,7 @@ once you've built the Autoscaling configuration required, save it to an HTTP fil
 ### Json Configuration Examples
 
 #### Using scale count
-```
+```JSON
 [
     {  
        "streamName":"streamName",
@@ -135,7 +135,7 @@ once you've built the Autoscaling configuration required, save it to an HTTP fil
 ]
 ```
 #### Using scale percentage
-```
+```JSON
 [
     {  
        "streamName":"streamName",
@@ -148,7 +148,7 @@ once you've built the Autoscaling configuration required, save it to an HTTP fil
        "scaleUp": {
             "scaleThresholdPct": 75,
             "scaleAfterMins": 5,
-            "scalePct": 200,
+            "scalePct": 150,
             "coolOffMins": 15,
             "notificationARN": "arn:aws:sns:region:accountId:topicName"
         },
@@ -156,7 +156,7 @@ once you've built the Autoscaling configuration required, save it to an HTTP fil
             "scaleThresholdPct": 25,
             "scaleAfterMins": 1,
             "scaleAfterMins": 15,
-            "scalePct": 75,
+            "scalePct": 25,
             "coolOffMins": 60,
             "notificationARN": "arn:aws:sns:region:accountId:topicName"
         }
@@ -164,7 +164,9 @@ once you've built the Autoscaling configuration required, save it to an HTTP fil
 ]
 ```
 
-Note that the `scalePct` parameter refers to the percentage of existing capacity that we'll scale to - it says "scale up **to**" rather than "scale up **by**". This means that in the above example, when a scale up is triggered, the autoscaler will double the capacity of the stream - scaling up to 200% of its existing capacity. When a scale down is triggered, it will scale down to 3/4 of its existing capacity.
+Note that when scaling up, `scalePct` adds `scalePct` of the current capacity to the existing shard count of the stream. This means that, given the above config were triggered with a stream containing 75 shards, the scale up event would _add_ 113 shards (`ceil(1.5 * 75)`, where 1.5 is the float representation of `scalePct: 150` above) to the existing capacity of the stream, meaning that we'd end up with a stream with 188 shards.
+
+When scaling down, the autoscaler does something similar, but in reverse. Assuming a scale down event is triggered with the above config on a stream with 75 shards, the scaler will subtract 19 shards (`ceil(0.25 * 75`) from the existing capacity of the stream, so we'd end up with 56 shards after our scale down is triggered.
 
 ## Autoscaling Behaviour ##
 
