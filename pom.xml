@@ -6,7 +6,7 @@
 	<artifactId>kinesis-scaling-utils</artifactId>
 	<version>.9.8.3</version>
 	<properties>
-		<sdk-version>2.15.60</sdk-version>
+		<sdk-version>2.15.77</sdk-version>
 	</properties>
 	<licenses>
 		<license>
@@ -111,6 +111,11 @@
 					<artifactId>commons-logging</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>sts</artifactId>
+			<version>${sdk-version}</version>
 		</dependency>
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
