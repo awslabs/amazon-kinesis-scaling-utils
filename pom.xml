@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.amazonaws</groupId>
 	<artifactId>kinesis-scaling-utils</artifactId>
-	<version>.9.8.4</version>
+	<version>.9.8.5</version>
 	<properties>
 		<sdk-version>2.15.77</sdk-version>
 	</properties>

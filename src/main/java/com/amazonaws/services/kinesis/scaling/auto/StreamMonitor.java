@@ -253,8 +253,12 @@ public class StreamMonitor implements Runnable {
 			finalScaleDirection = (getVote == null ? putVote : getVote);
 		}
 
+		LOG.debug(String.format("Determined Scaling Direction %s", finalScaleDirection));
+
 		try {
 			int currentShardCount = this.scaler.getOpenShardCount(this.config.getStreamName());
+
+			LOG.debug(String.format("Current Shard Count: %s", currentShardCount));
 
 			// if the metric stats indicate a scale up or down, then do the
 			// action
@@ -278,6 +282,8 @@ public class StreamMonitor implements Runnable {
 								Math.ceil(currentShardCount * new Double(this.config.getScaleUp().getScalePct()) / 100))
 										.intValue();
 					}
+
+					LOG.debug(String.format("Calculated new Target Shard Count of %s", newTarget));
 
 					if (newTarget != currentShardCount && newTarget > 0) {
 						LOG.info(String.format(
@@ -306,6 +312,9 @@ public class StreamMonitor implements Runnable {
 									this.config.getScaleUp().getNotificationARN(), "Kinesis Autoscaling - Scale Up",
 									(report == null ? "No Changes Made" : report.asJson()));
 						}
+					} else {
+						LOG.info(
+								"Not requesting a scaling action because new shard count equals current shard count, or new shard count is 0");
 					}
 				}
 			} else if (finalScaleDirection.equals(ScaleDirection.DOWN)) {
