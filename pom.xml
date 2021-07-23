@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.amazonaws</groupId>
 	<artifactId>kinesis-scaling-utils</artifactId>
-	<version>.9.8.6</version>
+	<version>.9.8.7</version>
 	<properties>
 		<sdk-version>2.15.77</sdk-version>
 	</properties>
@@ -41,7 +41,7 @@
 				<artifactId>maven-assembly-plugin</artifactId>
 				<version>2.1</version>
 				<configuration>
-					<finalName>KinesisScalingUtils-${version}</finalName>
+					<finalName>KinesisScalingUtils-${project.version}</finalName>
 					<descriptors>
 						<descriptor>assembly.xml</descriptor>
 					</descriptors>
@@ -71,7 +71,7 @@
 				<configuration>
 					<warSourceDirectory>src/main/WebContent</warSourceDirectory>
 					<failOnMissingWebXml>true</failOnMissingWebXml>
-					<warName>KinesisAutoscaling-${version}</warName>
+					<warName>KinesisAutoscaling-${project.version}</warName>
 					<recompressZippedFiles>true</recompressZippedFiles>
 				</configuration>
 			</plugin>
@@ -154,12 +154,6 @@
 			<version>2.10.9</version>
 		</dependency>
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.13.1</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
 			<version>2.7.4</version>
@@ -198,6 +192,12 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 			<version>3.10</version>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.13.2</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 	<url>https://github.com/awslabs/amazon-kinesis-scaling-utils</url>

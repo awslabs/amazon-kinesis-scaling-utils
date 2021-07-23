@@ -351,4 +351,101 @@ public class StreamScalingUtils {
 				.build();
 		snsClient.publish(req);
 	}
+
+	public static int getNewShardCount(int currentShardCount, Integer scaleCount, Integer scalePct,
+			ScaleDirection scalingDirection) {
+		return getNewShardCount(currentShardCount, scaleCount, scalePct, scalingDirection, null, null);
+	}
+
+	/**
+	 * Utility method to calculate a new shard count given inputs of scaling count
+	 * or percentage, and direction.
+	 * 
+	 * Count is simple to calculate, but percent scaling is documented as
+	 * "Percentage of the existing number of shards by which to scale up or down".
+	 * Feedback has been that customers think about percentages in different ways
+	 * depending on assumptions made.
+	 * 
+	 * Scaling up tends to be straightforward. You multiply the current shard count
+	 * by the % as a fraction. Where % is less than 100, you add 100, so 'scale up
+	 * by 20%' becomes 'scale up by 120%'
+	 * 
+	 * Scaling down is more complicated. Customers have different views on how to
+	 * 'divide the shard count in half'. Therefore we document it here. If you
+	 * provide a % lower than 100, then the shard count is reduced by the % of the
+	 * current size. For example:
+	 * 
+	 * 'scale down by 15%' means currentShardCount - (currentShardCount * .15)
+	 * 
+	 * for percentages above 100, then we use this as the absolute percentage, for
+	 * example
+	 * 
+	 * 'scale down by 200%' means currentShardCount / 2
+	 * 
+	 * Please see the src/test/java/.../TestScalingutils.testScaleUpScenarios() and
+	 * testScaleDownScenarios() for more examples
+	 * 
+	 * @param currentShardCount
+	 * @param scaleCount
+	 * @param scalePct
+	 * @param scalingDirection
+	 * @return
+	 */
+	public static int getNewShardCount(int currentShardCount, Integer scaleCount, Integer scalePct,
+			ScaleDirection scalingDirection, Integer minShardsAllowed, Integer maxShardsAllowed) {
+		int newShardCount = 0;
+
+		if (scalingDirection.equals(ScaleDirection.UP)) {
+			if (scaleCount != null) {
+				newShardCount = currentShardCount + scaleCount;
+			} else {
+				// convert the scaling factor to a % above 100 if below - many customers use
+				// values above or below as the config value is an int
+				Double scalingFactor = 0D;
+				if (scalePct < 100) {
+					scalingFactor = Double.valueOf(100 + scalePct) / 100D;
+				} else {
+					scalingFactor = Double.valueOf(scalePct) / 100D;
+				}
+
+				newShardCount = Double.valueOf(Math.ceil(Double.valueOf(currentShardCount) * scalingFactor)).intValue();
+
+				if (maxShardsAllowed != null && newShardCount > maxShardsAllowed) {
+					newShardCount = maxShardsAllowed;
+				}
+			}
+		} else {
+			if (scaleCount != null) {
+				newShardCount = currentShardCount - scaleCount;
+			} else {
+				// scaling by %
+				Double scalingFactor = 0D;
+
+				// reduce the scaling factor by 100, if above 100 - many customers use either as
+				// the config value is an int
+				if (scalePct > 100) {
+					scalingFactor = Double.valueOf(scalePct) / 100D;
+					newShardCount = Double.valueOf(Math.floor(Double.valueOf(currentShardCount) / scalingFactor))
+							.intValue();
+				} else {
+					scalingFactor = Double.valueOf(scalePct) / 100D;
+					newShardCount = currentShardCount
+							- Double.valueOf(Math.floor(Double.valueOf(currentShardCount) * scalingFactor)).intValue();
+				}
+
+				// add a guard against any decision going below 1
+
+				// guard against going below min
+				if (minShardsAllowed != null && newShardCount < minShardsAllowed) {
+					newShardCount = minShardsAllowed;
+				} else {
+					if (newShardCount < 1) {
+						newShardCount = 1;
+					}
+				}
+			}
+		}
+
+		return newShardCount;
+	}
 }

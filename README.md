@@ -48,24 +48,24 @@ Below you can see a graph of how Autoscaling will keep adequate Shard capacity t
 
 ![AutoscalingGraph](https://s3-eu-west-1.amazonaws.com/meyersi-ire-aws/KinesisScalingUtility/img/KinesisAutoscalingGraph.png)
 
-To get started, create a new Elastic Beanstalk application which is a Web Server with a Tomcat predefined configuration. Deploy the WAR by uploading from your local GitHub copy of [dist/KinesisAutoscaling-.9.8.4.war](dist/KinesisAutoscaling-.9.8.4.war), or using the following S3 URLs:
+To get started, create a new Elastic Beanstalk application which is a Web Server with a Tomcat predefined configuration. Deploy the WAR by uploading from your local GitHub copy of [dist/KinesisAutoscaling-.9.8.7.war](dist/KinesisAutoscaling-.9.8.7.war), or using the following S3 URLs:
 
 | region| S3 Path |
 | ----- | ------- |
-| ap-northeast-1 | https://s3.ap-northeast-1.amazonaws.com/awslabs-code-ap-northeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| ap-northeast-2 | https://s3.ap-northeast-2.amazonaws.com/awslabs-code-ap-northeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| ap-south-1 | https://s3.ap-south-1.amazonaws.com/awslabs-code-ap-south-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| ap-southeast-1 | https://s3.ap-southeast-1.amazonaws.com/awslabs-code-ap-southeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| ap-southeast-2 | https://s3.ap-southeast-2.amazonaws.com/awslabs-code-ap-southeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| ca-central-1 | https://s3.ca-central-1.amazonaws.com/awslabs-code-ca-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| eu-central-1 | https://s3.eu-central-1.amazonaws.com/awslabs-code-eu-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| eu-west-1 | https://s3.eu-west-1.amazonaws.com/awslabs-code-eu-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| eu-west-2 | https://s3.eu-west-2.amazonaws.com/awslabs-code-eu-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| sa-east-1 | https://s3.sa-east-1.amazonaws.com/awslabs-code-sa-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| us-east-1 | https://s3.us-east-1.amazonaws.com/awslabs-code-us-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| us-east-2 | https://s3.us-east-2.amazonaws.com/awslabs-code-us-east-2/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| us-west-1 | https://s3.us-west-1.amazonaws.com/awslabs-code-us-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
-| us-west-2 | https://s3.us-west-2.amazonaws.com/awslabs-code-us-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.8.4.war | 
+| ap-northeast-1 | https://s3.ap-northeast-1.amazonaws.com/awslabs-code-ap-northeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| ap-northeast-2 | https://s3.ap-northeast-2.amazonaws.com/awslabs-code-ap-northeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| ap-south-1 | https://s3.ap-south-1.amazonaws.com/awslabs-code-ap-south-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| ap-southeast-1 | https://s3.ap-southeast-1.amazonaws.com/awslabs-code-ap-southeast-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| ap-southeast-2 | https://s3.ap-southeast-2.amazonaws.com/awslabs-code-ap-southeast-2/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| ca-central-1 | https://s3.ca-central-1.amazonaws.com/awslabs-code-ca-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| eu-central-1 | https://s3.eu-central-1.amazonaws.com/awslabs-code-eu-central-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| eu-west-1 | https://s3.eu-west-1.amazonaws.com/awslabs-code-eu-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| eu-west-2 | https://s3.eu-west-2.amazonaws.com/awslabs-code-eu-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| sa-east-1 | https://s3.sa-east-1.amazonaws.com/awslabs-code-sa-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| us-east-1 | https://s3.us-east-1.amazonaws.com/awslabs-code-us-east-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| us-east-2 | https://s3.us-east-2.amazonaws.com/awslabs-code-us-east-2/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| us-west-1 | https://s3.us-west-1.amazonaws.com/awslabs-code-us-west-1/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
+| us-west-2 | https://s3.us-west-2.amazonaws.com/awslabs-code-us-west-2/KinesisAutoscaling/KinesisAutoscaling-.9.8.7.war | 
 
 Once deployed, you must configure the Autoscaling engine by providing a JSON configuration file on an HTTP or S3 URL. The structure of this configuration file is as follows:
 
@@ -102,7 +102,7 @@ a streamMonitor object is a definition of an Autoscaling Policy applied to a Kin
 }
 ```
 
-once you've built the Autoscaling configuration required, save it to an HTTP file server or to Amazon S3. Then, access your Elastic Beanstalk application, and select 'Configuration' from the left hand Navigation Menu. Then select the 'Software Configuration' panel, and add a new configuration item called 'config-file-url' that points to the URL of the configuration file. Acceptable formats are 'http://path to file' or 's3://bucket/path to file'. Save the configuration, and then check the application logs for correct operation.
+once you've built the Autoscaling configuration required, save it to an HTTP file server or to Amazon S3. Then, access your Elastic Beanstalk application, and select 'Configuration' from the left hand Navigation Menu. Then select the 'Software Configuration' panel, and add a new configuration item called `config-file-url` that points to the URL of the configuration file. Acceptable formats are 'http://path to file' or 's3://bucket/path to file'. Save the configuration, and then check the application logs for correct operation.
 
 ### Json Configuration Examples
 
@@ -166,11 +166,15 @@ once you've built the Autoscaling configuration required, save it to an HTTP fil
 
 Note that when scaling up, `scalePct` adds `scalePct` of the current capacity to the existing shard count of the stream. This means that, given the above config were triggered with a stream containing 75 shards, the scale up event would _add_ 113 shards (`ceil(1.5 * 75)`, where 1.5 is the float representation of `scalePct: 150` above) to the existing capacity of the stream, meaning that we'd end up with a stream with 188 shards.
 
+As of version `.9.8.7`, any `scalePct` for scaling up will be used literally, so with a Stream of 1 shard, even a `scalePct` of `1` will result in a new Shard being added.
+
 When scaling down, the autoscaler does something similar, but in reverse. Assuming a scale down event is triggered with the above config on a stream with 75 shards, the scaler will subtract 19 shards (`ceil(0.25 * 75`) from the existing capacity of the stream, so we'd end up with 56 shards after our scale down is triggered.
 
-## Autoscaling Behaviour ##
+As of version `.9.8.7`, the behaviour of `scalePct` above and below 100% has been rationalised, meaning that in a `scaleDown` config, a `scalePct` value of `50` will logically be treated the same as `200`. Please validate your configurations to ensure that this doesn't change the desired target Shard count. You can view a wide array of examples of scale up/down behaviour in [TestScalingUtils.java](src/test/java/com/amazonaws/services/kinesis/scaling/TestScalingUtils.java).
 
-In version .9.5.0, Autoscaling added the ability to scale on the basis of PUT ___and___ GET utilisation. This change means that you carefully have to consider your actual utilisation of each metric prior to configuring autoscaling with both metrics. For information on how the AutoScaling module will react with both metrics, consider the following table:
+## Autoscaling on Puts & Gets ##
+
+From version `.9.5.0`, Autoscaling added the ability to scale on the basis of PUT ___and___ GET utilisation. This change means that you carefully have to consider your actual utilisation of each metric prior to configuring autoscaling with both metrics. For information on how the AutoScaling module will react with both metrics, consider the following table:
 
 | | | PUT | | |
 | :-- | :-- | :--: | :--: | :--: |
