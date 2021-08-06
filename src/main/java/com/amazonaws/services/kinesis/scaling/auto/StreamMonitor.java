@@ -267,6 +267,7 @@ public class StreamMonitor implements Runnable {
 			if (finalScaleDirection.equals(ScaleDirection.UP)) {
 				Integer scaleCount = this.config.getScaleUp().getScaleCount();
 				Integer scalePct = this.config.getScaleUp().getScalePct();
+
 				// check the cool down interval
 				if (lastScaleUp != null
 						&& now.minusMinutes(this.config.getScaleUp().getCoolOffMins()).isBefore(lastScaleUp)) {
@@ -315,6 +316,7 @@ public class StreamMonitor implements Runnable {
 			} else if (finalScaleDirection.equals(ScaleDirection.DOWN)) {
 				Integer scaleCount = this.config.getScaleDown().getScaleCount();
 				Integer scalePct = this.config.getScaleDown().getScalePct();
+
 				// check the cool down interval
 				if (lastScaleDown != null
 						&& now.minusMinutes(this.config.getScaleDown().getCoolOffMins()).isBefore(lastScaleDown)) {
